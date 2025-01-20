@@ -13,19 +13,23 @@ class Enemy:
             self.image = pygame.image.load("sprites/enemies/orb_1.png")
             self.max_health = 100
             self.speed = 2
+            self.reward = 15  # odmena za zabitie
         elif enemy_type == 2:  # rýchly orb
             self.image = pygame.image.load("sprites/enemies/orb_2_speed.png")
-            self.max_health = 100  # rovnaké HP ako základný orb
-            self.speed = 2  # rovnaká základná rýchlosť
-            self.is_speed_orb = True  # príznak pre rýchly orb
+            self.max_health = 100
+            self.speed = 2
+            self.is_speed_orb = True
+            self.reward = 25  # väčšia odmena za rýchleho nepriateľa
         elif enemy_type == 3:  # odolný orb
             self.image = pygame.image.load("sprites/enemies/orb_3_tough.png")
             self.max_health = 400
             self.speed = 1.5
+            self.reward = 40  # veľká odmena za odolného nepriateľa
         elif enemy_type == 4:  # boss
             self.image = pygame.image.load("sprites/enemies/orb_4_boss.png")
             self.max_health = 1000
             self.speed = 2.5
+            self.reward = 100  # najväčšia odmena za bossa
         
         # transformácia obrázku podľa typu
         size_multiplier = 1.5 if enemy_type == 4 else 1
@@ -116,8 +120,12 @@ class Enemy:
                 self.y += self.last_move[1] * self.speed
             
         # kontrola či nepriateľ neopustil mapu
-        if self.x < -self.cell_size or self.x > self.game_map.window_width or \
-           self.y < -self.cell_size or self.y > self.game_map.window_height:
+        if 0 <= grid_x < len(self.game_map.map_1[0]) and 0 <= grid_y < len(self.game_map.map_1):
+            # ak je na políčku s hodnotou 4 (koniec cesty), označíme ho ako mŕtveho
+            if self.game_map.map_1[grid_y][grid_x] == 4:
+                self.alive = False
+        else:
+            # ak je mimo mapy, tiež ho označíme ako mŕtveho
             self.alive = False
 
     def draw(self):
@@ -125,3 +133,14 @@ class Enemy:
             self.window.blit(self.image, (self.x, self.y))
             self.draw_health_bar()
             self.move()
+
+    def update_path(self):
+        """Reset enemy position when map changes"""
+        # nájdenie štartovacej pozície (hodnota 2 v mape)
+        for y, row in enumerate(self.game_map.map_1):
+            for x, value in enumerate(row):
+                if value == 2:
+                    self.x = x * self.cell_size + self.cell_size // 4
+                    self.y = y * self.cell_size + self.cell_size // 4
+                    self.last_move = (0, 1)  # počiatočný smer pohybu (dole)
+                    break

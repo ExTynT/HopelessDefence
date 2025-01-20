@@ -15,6 +15,16 @@ class Wave:
         self.spawn_timer = 0  # časovač pre spawn
         self.enemies_spawned = 0  # počet vytvorených nepriateľov
         self.wave_complete = False  # stav dokončenia vlny
+        self.available_levels = list(range(1, 5))  # dostupné levely 1-4
+        self.hp_multiplier = 1.0  # násobiteľ HP nepriateľov
+        
+    def update_game_map(self, new_map):
+        """Aktualizácia mapy pre nový level"""
+        self.game_map = new_map
+        # Aktualizácia pathfindingu pre existujúcich nepriateľov
+        for enemy in self.enemies:
+            enemy.game_map = new_map
+            enemy.update_path()
         
     def get_enemy_type(self):
         if self.current_wave == 1:
@@ -52,7 +62,10 @@ class Wave:
             self.spawn_timer += 1
             if self.spawn_timer >= self.spawn_delay:
                 enemy_type = self.get_enemy_type()
-                self.enemies.append(Enemy(self.window, self.game_map, enemy_type))
+                new_enemy = Enemy(self.window, self.game_map, enemy_type)
+                new_enemy.max_health *= self.hp_multiplier  # aplikácia HP multiplikátora
+                new_enemy.health = new_enemy.max_health  # nastavenie aktuálneho HP
+                self.enemies.append(new_enemy)
                 self.enemies_spawned += 1
                 self.spawn_timer = 0
         
@@ -68,4 +81,21 @@ class Wave:
     def draw(self):
         # vykreslenie všetkých nepriateľov
         for enemy in self.enemies:
-            enemy.draw() 
+            enemy.draw()
+            
+    def reset(self):
+        """Reset waves for new level and get random next level"""
+        self.current_wave = 1
+        self.wave_complete = False
+        self.enemies = []
+        self.enemies_spawned = 0
+        self.spawn_timer = 0
+        self.wave_size = 15  # Reset na prvú vlnu
+        self.hp_multiplier *= 1.25  # zvýšenie HP o 25%
+        
+        # Náhodný výber ďalšieho levelu
+        if not self.available_levels:  # ak sú všetky levely použité
+            self.available_levels = list(range(1, 5))  # reset dostupných levelov (1-4)
+        next_level = random.choice(self.available_levels)
+        self.available_levels.remove(next_level)  # odstránenie použitého levelu
+        return next_level 
