@@ -55,7 +55,7 @@ def draw_ui_panel():
     # informácie o vlne
     pygame.draw.rect(screen, (60, 60, 60), (GAME_WIDTH + 15, 180, UI_WIDTH - 30, 100), border_radius=10)
     
-    wave_text = font.render("WAVE 1", True, (255, 215, 0))
+    wave_text = font.render(f"WAVE {wave.current_wave}/4", True, (255, 215, 0))
     wave_rect = wave_text.get_rect(centerx=GAME_WIDTH + UI_WIDTH//2, y=190)
     screen.blit(wave_text, wave_rect)
     
@@ -86,13 +86,16 @@ while run:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             pos_x,pos_y = pygame.mouse.get_pos()
             if pos_x < GAME_WIDTH:  # umiestňovanie veží len v hernej ploche
-                tower.place_tower(pos_x,pos_y)
+                if not tower.handle_menu_click(pos_x, pos_y):
+                    tower.place_tower(pos_x,pos_y)
 
     # aktualizácia vlny a kontrola uniknutých nepriateľov
     wave.update()
-    for enemy in wave.enemies:
-        if not enemy.alive and enemy.y > 0:  # nepriateľ došiel do cieľa
+    for enemy in wave.enemies[:]:  # použijeme kópiu zoznamu pre bezpečné odstránenie
+        if enemy.alive and enemy.y > HEIGHT - enemy.cell_size:  # nepriateľ prešiel cez koniec mapy
             player_hp -= 10  # poškodenie za uniknutého nepriateľa
+            enemy.alive = False  # označíme nepriateľa ako mŕtveho
+            wave.enemies.remove(enemy)  # odstránime ho zo zoznamu
 
     # vykreslenie herných prvkov
     game_map.draw_level()
