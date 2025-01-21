@@ -96,6 +96,20 @@ class Wave:
         # Náhodný výber ďalšieho levelu
         if not self.available_levels:  # ak sú všetky levely použité
             self.available_levels = list(range(1, 5))  # reset dostupných levelov (1-4)
+        
+        # Získanie aktuálneho levelu z game_map
+        current_map = self.game_map.map_level
+        
+        # Ak je v available_levels len jeden level a je to ten istý ako aktuálny,
+        # resetujeme available_levels
+        if len(self.available_levels) == 1 and self.available_levels[0] == current_map:
+            self.available_levels = list(range(1, 5))
+            self.available_levels.remove(current_map)
+        
+        # Odstránenie aktuálneho levelu z možností, ak tam je
+        if current_map in self.available_levels:
+            self.available_levels.remove(current_map)
+            
         next_level = random.choice(self.available_levels)
         self.available_levels.remove(next_level)  # odstránenie použitého levelu
         return next_level 

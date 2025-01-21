@@ -250,8 +250,9 @@ while run:
                         tower.place_tower(mouse_pos[0], mouse_pos[1], True)
                     elif event.button == 1:  # ľavé tlačidlo
                         if not tower.handle_menu_click(mouse_pos[0], mouse_pos[1]):
-                            if not tower.handle_sell_click(mouse_pos[0], mouse_pos[1]):
-                                tower.place_tower(mouse_pos[0], mouse_pos[1], False)
+                            if not tower.handle_upgrade_click(mouse_pos[0], mouse_pos[1]):
+                                if not tower.handle_sell_click(mouse_pos[0], mouse_pos[1]):
+                                    tower.place_tower(mouse_pos[0], mouse_pos[1], False)
 
     # aktualizácia a vykreslenie podľa herného stavu
     if game_state == "menu":

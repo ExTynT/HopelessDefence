@@ -110,7 +110,7 @@ class Map:
                 if cell_value == 3:
                     pos_x = x * self.cell_size
                     pos_y = y * self.cell_size
-                    self.window.blit(self.gold,(pos_x,pos_y))
+                    self.window.blit(self.gold,(pos_x,pos_y)) 
 
         
 

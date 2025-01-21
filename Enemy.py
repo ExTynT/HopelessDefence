@@ -2,7 +2,7 @@ import pygame
 import random
 
 class Enemy:
-    def __init__(self, window, game_map, enemy_type=1):
+    def __init__(self, window, game_map, enemy_type=1, hp_multiplier=1):
         self.window = window
         self.game_map = game_map
         self.cell_size = 60
@@ -11,23 +11,23 @@ class Enemy:
         # nastavenie vlastností podľa typu nepriateľa
         if enemy_type == 1:  # základný orb
             self.image = pygame.image.load("sprites/enemies/orb_1.png")
-            self.max_health = 100
+            self.max_health = 100 * hp_multiplier
             self.speed = 2
             self.reward = 15  # odmena za zabitie
         elif enemy_type == 2:  # rýchly orb
             self.image = pygame.image.load("sprites/enemies/orb_2_speed.png")
-            self.max_health = 100
-            self.speed = 2
+            self.max_health = 100 * hp_multiplier
+            self.speed = 2  # znížená rýchlosť na 2
             self.is_speed_orb = True
             self.reward = 25  # väčšia odmena za rýchleho nepriateľa
         elif enemy_type == 3:  # odolný orb
             self.image = pygame.image.load("sprites/enemies/orb_3_tough.png")
-            self.max_health = 400
+            self.max_health = 400 * hp_multiplier
             self.speed = 1.5
             self.reward = 40  # veľká odmena za odolného nepriateľa
         elif enemy_type == 4:  # boss
             self.image = pygame.image.load("sprites/enemies/orb_4_boss.png")
-            self.max_health = 1000
+            self.max_health = 1000 * hp_multiplier
             self.speed = 2.5
             self.reward = 100  # najväčšia odmena za bossa
         
@@ -49,6 +49,9 @@ class Enemy:
                     break
         
         self.alive = True
+        
+        # uloženie základnej rýchlosti pre efekty spomalenia
+        self.base_speed = self.speed  # nastavenie base_speed až po inicializácii speed
 
     def take_damage(self, damage):
         self.health -= damage
