@@ -4,6 +4,7 @@ from Tower import Tower
 from Wave import Wave
 from Economy import Economy
 from Menus import Menus
+from Shop import Shop
 
 pygame.init()
 pygame.mixer.init()
@@ -13,7 +14,7 @@ UI_WIDTH = 200
 WIDTH = GAME_WIDTH + UI_WIDTH
 HEIGHT = 600
 screen = pygame.display.set_mode([WIDTH, HEIGHT])
-pygame.display.set_caption("Tower Defense")
+pygame.display.set_caption("Hopeless Defence")
 
 fps = 60
 timer = pygame.time.Clock()
@@ -30,24 +31,27 @@ def change_background_music():
     current_music_track = current_music_track % 4 + 1  # cykluje od 1 do 4
     game_music = pygame.mixer.Sound(f"music/{current_music_track}_bg.mp3")
     game_music.set_volume(0.2)
-    game_music.play()
+    game_music.play(-1)  # -1 means loop indefinitely
     is_game_music_playing = True
 
 def init_game():
-    global player_hp, player_max_hp, game_map, economy, tower, wave, is_game_music_playing, game_music, current_music_track
+    global player_hp, player_max_hp, game_map, economy, tower, wave, is_game_music_playing, game_music, current_music_track, shop
     player_max_hp = 100
     player_hp = player_max_hp
     game_map = Map(1,screen,GAME_WIDTH,HEIGHT)  # 1 je číslo mapy, nie levelu
     economy = Economy(screen, GAME_WIDTH)
-    tower = Tower(screen,GAME_WIDTH,HEIGHT,game_map,economy)
+    shop = Shop(screen, GAME_WIDTH, HEIGHT)
+    tower = Tower(screen,GAME_WIDTH,HEIGHT,game_map,economy,shop)
     wave = Wave(screen, game_map)
     # načítanie a spustenie hernej hudby
     if not is_game_music_playing:
         current_music_track = 1
         game_music = pygame.mixer.Sound(f"music/{current_music_track}_bg.mp3")
         game_music.set_volume(0.2)
-        game_music.play()
+        game_music.play(-1)  # -1 means loop indefinitely
         is_game_music_playing = True
+    # Reset menu music state
+    menus.is_music_playing = False
 
 def draw_ui_panel():
     # vykreslenie pozadia UI
@@ -144,6 +148,7 @@ font = pygame.font.Font("fonts/joystix monospace.otf", 20)
 
 # inicializácia menu
 menus = Menus(screen, WIDTH, HEIGHT)
+shop = Shop(screen, GAME_WIDTH, HEIGHT)  # pridanie globálnej inštancie shopu
 
 # hlavná herná slučka
 run = True
@@ -151,7 +156,7 @@ game_state = "menu"  # menu, game, pause, win, game_over, boss_victory
 completion_time = 0  # čas dokončenia hry
 
 def update_game():
-    global game_state, player_hp, game_map
+    global game_state, player_hp, game_map, is_game_music_playing
     # aktualizácia vlny a kontrola uniknutých nepriateľov
     wave.update()
     for enemy in wave.enemies[:]:
@@ -169,10 +174,15 @@ def update_game():
                 enemy.alive = False
                 wave.enemies.remove(enemy)
                 if player_hp <= 0:
+                    game_music.stop()  # zastavenie hernej hudby pri game over
+                    is_game_music_playing = False
+                    menus.is_music_playing = False  # Reset menu music state
                     game_state = "game_over"
     
     # kontrola výhry v leveli
     if wave.current_wave == 4 and wave.wave_complete and len(wave.enemies) == 0:
+        game_music.stop()  # zastavenie hernej hudby pri boss victory
+        is_game_music_playing = False
         game_state = "boss_victory"
         return
 
@@ -203,6 +213,8 @@ while run:
                 if game_state == "boss_victory":
                     buttons = menus.draw_boss_victory(mouse_pos, wave.hp_multiplier, economy.coin_generation_rate)
                     if buttons["continue"].collidepoint(mouse_pos):
+                        # Zastavenie boss victory hudby
+                        menus.stop_all_sounds()
                         # Zmena hudby na ďalšiu skladbu
                         change_background_music()
                         
@@ -229,12 +241,21 @@ while run:
                         tower.update_game_map(game_map)  # Aktualizácia mapy v Tower class
                         game_state = "game"
                     elif buttons["menu"].collidepoint(mouse_pos):
+                        menus.stop_all_sounds()
                         game_music.stop()
                         is_game_music_playing = False
                         game_state = "menu"
+                    elif buttons["shop"].collidepoint(mouse_pos):  # nové tlačidlo pre shop
+                        menus.stop_all_sounds()  # zastavenie boss victory hudby
+                        game_music.stop()  # zastavenie hernej hudby pri vstupe do shopu
+                        is_game_music_playing = False
+                        shop.add_level_credits(economy.coins)  # konvertovanie mincí na kredity
+                        economy.coins = 0
+                        game_state = "shop"
                 else:
                     buttons = menus.draw_win_screen(mouse_pos, completion_time) if game_state == "win" else menus.draw_game_over(mouse_pos)
                     if buttons["menu"].collidepoint(mouse_pos):
+                        menus.stop_all_sounds()
                         game_music.stop()  # zastavenie hernej hudby pri návrate do menu
                         is_game_music_playing = False
                         game_state = "menu"
@@ -254,6 +275,17 @@ while run:
                                 if not tower.handle_sell_click(mouse_pos[0], mouse_pos[1]):
                                     tower.place_tower(mouse_pos[0], mouse_pos[1], False)
 
+            elif game_state == "shop":
+                buttons = shop.draw(mouse_pos)
+                if buttons["return"].collidepoint(mouse_pos):
+                    shop.stop_music()  # zastavenie shop hudby
+                    game_state = "boss_victory"  # návrat na boss victory screen
+                elif buttons["switch"].collidepoint(mouse_pos):
+                    shop.current_page = "stats" if shop.current_page == "upgrades" else "upgrades"
+                else:
+                    # Spracovanie kliknutí na upgrady
+                    shop.handle_click(mouse_pos[0], mouse_pos[1])
+
     # aktualizácia a vykreslenie podľa herného stavu
     if game_state == "menu":
         menus.draw_main_menu(mouse_pos)
@@ -270,6 +302,9 @@ while run:
 
     elif game_state == "boss_victory":
         menus.draw_boss_victory(mouse_pos, wave.hp_multiplier, economy.coin_generation_rate)
+
+    elif game_state == "shop":
+        shop.draw(mouse_pos)
 
     pygame.display.flip()
 

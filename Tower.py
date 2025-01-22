@@ -2,7 +2,7 @@ import pygame
 import math
 
 class Tower():
-    def __init__(self,window,window_width,window_height,game_map,economy):
+    def __init__(self,window,window_width,window_height,game_map,economy,shop):
         self.window = window
         self.window_width = window_width
         self.window_height = window_height
@@ -11,12 +11,20 @@ class Tower():
         self.tower_upgrades = {}  # slovník na sledovanie upgradov pre jednotlivé veže {(x, y): "upgrade_type"}
         self.game_map = game_map
         self.economy = economy  # pridanie ekonomiky
+        self.shop = shop  # pridanie shopu
         self.menu_state = None  # None, "placement", "upgrade", "sell"
         self.selected_cell = None  # pozícia bunky pre menu výberu
         self.projectiles = []  # list aktívnych projektilov
         self.font = pygame.font.Font("fonts/joystix monospace.otf", 16)  # font pre ceny
         self.sell_tower_pos = None  # pozícia veže pre predaj
         self.upgrade_tower_pos = None  # pozícia veže pre upgrade
+        self.show_stats = False  # nový flag pre zobrazenie štatistík
+        
+        # Vytvorenie stats ikony
+        self.stats_icon = pygame.Surface((20, 20), pygame.SRCALPHA)
+        pygame.draw.rect(self.stats_icon, (200, 200, 200), (2, 2, 16, 4))  # horný riadok
+        pygame.draw.rect(self.stats_icon, (200, 200, 200), (2, 8, 12, 4))  # stredný riadok
+        pygame.draw.rect(self.stats_icon, (200, 200, 200), (2, 14, 8, 4))  # spodný riadok
         
         # načítanie zvukového efektu pre laser
         self.laser_sound = pygame.mixer.Sound("music/towers/laser.mp3")
@@ -62,10 +70,10 @@ class Tower():
         self.overcharge_icon = pygame.transform.scale(self.overcharge_icon, (15, 15))
         
         # načítanie upgrade symbolov pre cannon vežu
-        self.heavy_shells_icon = pygame.image.load("sprites/towers/status/basic_tower_upgrade_1.png")  # dočasne použijeme existujúcu ikonu
+        self.heavy_shells_icon = pygame.image.load("sprites/towers/status/cannon_tower_upgrade_1.png")
         self.heavy_shells_icon = pygame.transform.scale(self.heavy_shells_icon, (15, 15))
         
-        self.cluster_bombs_icon = pygame.image.load("sprites/towers/status/basic_tower_upgrade_2.png")  # dočasne použijeme existujúcu ikonu
+        self.cluster_bombs_icon = pygame.image.load("sprites/towers/status/cannon_tower_upgrade_2.png")
         self.cluster_bombs_icon = pygame.transform.scale(self.cluster_bombs_icon, (15, 15))
         
         # nastavenie vlastností veží
@@ -474,9 +482,13 @@ class Tower():
         for grid_x, grid_y, tower_type in self.tower_positions:
             tower_key = (grid_x, grid_y)
             
-            # aktualizácia cooldownu
+            # získanie multiplikátorov zo shopu
+            damage_mult, speed_mult = self.shop.get_tower_multipliers(tower_type)
+            
+            # aktualizácia cooldownu s rýchlostným multiplikátorom
             if tower_key in self.tower_cooldowns:
-                self.tower_cooldowns[tower_key] = max(0, self.tower_cooldowns[tower_key] - 1)
+                # rýchlejší cooldown s speed multiplierom
+                self.tower_cooldowns[tower_key] = max(0, self.tower_cooldowns[tower_key] - speed_mult)
             else:
                 self.tower_cooldowns[tower_key] = 0
                 
@@ -508,7 +520,7 @@ class Tower():
             # kontrola či je veža na zlatom políčku (3) pre boost a či je v dosahu boosting tower
             is_boosted = self.game_map.map_1[grid_y][grid_x] == 3
             is_tower_boosted = self.is_boosted_by_tower(grid_x, grid_y)
-            damage_multiplier = 1
+            damage_multiplier = damage_mult  # začíname so shop multiplikátorom
             if is_boosted:
                 damage_multiplier *= 1.25
             if is_tower_boosted:
@@ -538,7 +550,7 @@ class Tower():
                                    (start_x, start_y), (end_x, end_y), 2)
                     self.laser_sound.play()
                     
-                    # poškodenie prvého nepriateľa
+                    # poškodenie prvého nepriateľa s damage multiplierom
                     enemy.take_damage(self.tower_types[1]["damage"] * damage_multiplier)
                     if not enemy.alive:
                         self.economy.coins += enemy.reward
@@ -554,7 +566,7 @@ class Tower():
                         pygame.draw.line(self.window, (255,0,0), 
                                        (end_x, end_y), (second_end_x, second_end_y), 2)
                         
-                        # poškodenie druhého nepriateľa
+                        # poškodenie druhého nepriateľa s damage multiplierom
                         second_enemy.take_damage(self.tower_types[1]["damage"] * damage_multiplier * self.upgrades["piercing_beam"]["effects"]["second_damage"])
                         if not second_enemy.alive:
                             self.economy.coins += second_enemy.reward
@@ -562,23 +574,24 @@ class Tower():
                 elif (tower_type in [2, 3]) and self.tower_cooldowns[tower_key] == 0:
                     # získanie vlastností veže na základe upgradu
                     tower_damage = self.tower_types[tower_type]["damage"]
-                    tower_cooldown = self.tower_types[tower_type]["cooldown"]
+                    tower_cooldown = int(self.tower_types[tower_type]["cooldown"] / speed_mult)  # upravený cooldown podľa speed multiplikátora
                     
                     if tower_type == 2 and (grid_x, grid_y) in self.tower_upgrades:  # cannon upgrades
                         upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
                         if upgrade_type == "heavy_shells":
                             tower_damage = self.upgrades["heavy_shells"]["effects"]["damage"]
-                            tower_cooldown = int(self.tower_types[tower_type]["cooldown"] * 3)  # 3x dlhší cooldown
+                            tower_cooldown = int(self.tower_types[tower_type]["cooldown"] * 3 / speed_mult)  # upravený cooldown
                         elif upgrade_type == "cluster_bombs":
                             tower_damage = self.upgrades["cluster_bombs"]["effects"]["center_damage"]
+                            tower_cooldown = int(self.upgrades["cluster_bombs"]["effects"]["cooldown"] / speed_mult)
                     elif tower_type == 3 and (grid_x, grid_y) in self.tower_upgrades:  # basic tower upgrades
                         upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
                         if upgrade_type == "rapid_fire":
                             tower_damage = self.upgrades["rapid_fire"]["effects"]["damage"]
-                            tower_cooldown = self.upgrades["rapid_fire"]["effects"]["cooldown"]
+                            tower_cooldown = int(self.upgrades["rapid_fire"]["effects"]["cooldown"] / speed_mult)
                         elif upgrade_type == "double_shot":
                             tower_damage = self.upgrades["double_shot"]["effects"]["damage"]
-                            # vytvorenie dvoch projektilov
+                            # vytvorenie dvoch projektilov s damage multiplierom
                             targets = [e[0] for e in enemies_in_range[:3]]
                             self.add_projectile(start_x - 5, start_y, targets, tower_damage * damage_multiplier, tower_type)
                             self.add_projectile(start_x + 5, start_y, targets, tower_damage * damage_multiplier, tower_type)
@@ -586,17 +599,17 @@ class Tower():
                             self.tower_cooldowns[tower_key] = tower_cooldown
                             continue
                     
-                    # vytvorenie nového projektilu
+                    # vytvorenie nového projektilu s damage multiplierom
                     targets = [e[0] for e in enemies_in_range[:3]]
                     if tower_type == 2:  # cannon
                         upgrade_type = self.tower_upgrades.get((grid_x, grid_y))
                         if upgrade_type == "heavy_shells":
                             targets = [enemies_in_range[0][0]]  # len prvý nepriateľ pre heavy shells
                             tower_damage = self.upgrades["heavy_shells"]["effects"]["damage"]
-                            tower_cooldown = self.upgrades["heavy_shells"]["effects"]["cooldown"]
+                            tower_cooldown = int(self.upgrades["heavy_shells"]["effects"]["cooldown"] / speed_mult)
                         elif upgrade_type == "cluster_bombs":
                             tower_damage = self.upgrades["cluster_bombs"]["effects"]["center_damage"]
-                            tower_cooldown = self.upgrades["cluster_bombs"]["effects"]["cooldown"]
+                            tower_cooldown = int(self.upgrades["cluster_bombs"]["effects"]["cooldown"] / speed_mult)
                         self.add_projectile(start_x, start_y, targets, tower_damage * damage_multiplier, tower_type, upgrade_type)
                         self.cannon_sound.play()
                     else:  # basic tower (single shot)
@@ -724,33 +737,73 @@ class Tower():
             
         return False
 
+    def draw_tower_stats(self, tower_type, grid_x, grid_y, menu_x, menu_y, menu_width):
+        """Vykreslí štatistiky veže"""
+        stats = self.get_tower_stats(tower_type, grid_x, grid_y)
+        
+        # Základné štatistiky
+        base_stats = self.tower_types[tower_type].copy()
+        
+        # Pozadie menu
+        pygame.draw.rect(self.window, (50, 50, 50), (menu_x, menu_y, menu_width, 140))
+        
+        # Nadpis
+        title = self.font.render("TOWER STATS", True, (255, 215, 0))
+        title_rect = title.get_rect(centerx=menu_x + menu_width//2, y=menu_y + 10)
+        self.window.blit(title, title_rect)
+        
+        # Menší font pre štatistiky
+        stats_font = pygame.font.Font("fonts/joystix monospace.otf", 12)
+        
+        # Aktuálne hodnoty
+        y_offset = menu_y + 40
+        
+        if "damage" in stats:
+            base_dmg = base_stats["damage"]
+            current_dmg = stats["damage"]
+            dmg_text = stats_font.render(f"DMG: {current_dmg:.1f} (Base: {base_dmg})", True, (255, 255, 255))
+            dmg_rect = dmg_text.get_rect(centerx=menu_x + menu_width//2, y=y_offset)
+            self.window.blit(dmg_text, dmg_rect)
+            y_offset += 20
+        
+        if "cooldown" in stats:
+            base_cd = base_stats["cooldown"]
+            current_cd = stats["cooldown"]
+            cd_text = stats_font.render(f"CD: {current_cd:.1f} (Base: {base_cd})", True, (255, 255, 255))
+            cd_rect = cd_text.get_rect(centerx=menu_x + menu_width//2, y=y_offset)
+            self.window.blit(cd_text, cd_rect)
+            y_offset += 20
+        
+        # ikona pre prepnutie späť - v pravom hornom rohu
+        stats_button = pygame.draw.rect(self.window, (40, 40, 40), 
+                                      (menu_x + menu_width - 30, menu_y + 5, 25, 25))
+        self.window.blit(self.stats_icon, (menu_x + menu_width - 27, menu_y + 7))
+        
+        return {"stats": stats_button}
+
     def draw_upgrade_menu(self):
-        if self.menu_state != "upgrade" or not self.upgrade_tower_pos:
+        """Vykreslí menu pre vylepšenie veže"""
+        if not self.upgrade_tower_pos:
             return None
             
         grid_x, grid_y = self.upgrade_tower_pos
-        
-        # zistenie typu veže
         tower_type = None
+        
+        # nájdenie typu veže na danej pozícii
         for x, y, t in self.tower_positions:
             if x == grid_x and y == grid_y:
                 tower_type = t
                 break
-                
-        if tower_type not in [1, 2, 3]:  # ak to nie je laser, cannon alebo basic veža
+        
+        if tower_type is None:
             return None
-            
-        # kontrola či už veža nemá upgrade
-        if (grid_x, grid_y) in self.tower_upgrades:
-            return None
-            
-        # kontrola či je na zlatom políčku
-        is_gold_tile = self.game_map.map_1[grid_y][grid_x] == 3
-            
-        menu_width = 240
-        menu_height = 200  # zväčšená výška pre popis
+        
+        # pozícia menu
         menu_x = grid_x * self.cell_size
-        menu_y = grid_y * self.cell_size - menu_height
+        menu_y = grid_y * self.cell_size - 200
+        menu_width = 240
+        menu_height = 200
+        button_height = 50
         
         if menu_y < 0:
             menu_y = grid_y * self.cell_size + self.cell_size
@@ -758,20 +811,28 @@ class Tower():
         if menu_x + menu_width > self.window_width:
             menu_x = self.window_width - menu_width
             
-        pygame.draw.rect(self.window, (50, 50, 50), 
-                        (menu_x, menu_y, menu_width, menu_height))
+        # pozadie menu
+        pygame.draw.rect(self.window, (50, 50, 50), (menu_x, menu_y, menu_width, menu_height))
+        
+        # ikona pre prepnutie na štatistiky - v pravom hornom rohu
+        stats_button = pygame.draw.rect(self.window, (40, 40, 40), 
+                                      (menu_x + menu_width - 30, menu_y + 5, 25, 25))
+        self.window.blit(self.stats_icon, (menu_x + menu_width - 27, menu_y + 7))
+        
+        # Ak je veža upgradnutá alebo je zapnuté zobrazenie štatistík
+        if (grid_x, grid_y) in self.tower_upgrades or self.show_stats:
+            return self.draw_tower_stats(tower_type, grid_x, grid_y, menu_x, menu_y, menu_width)
         
         # nadpis
         title_text = self.font.render("UPGRADES", True, (255, 215, 0))
         title_rect = title_text.get_rect(centerx=menu_x + menu_width//2, y=menu_y + 10)
         self.window.blit(title_text, title_rect)
         
-        # tlačidlá pre upgrady
-        button_height = 50
-        button_margin = 10
-        button_y = menu_y + 40
+        # kontrola či je na zlatom políčku
+        is_gold_tile = self.game_map.map_1[grid_y][grid_x] == 3
         
         upgrade_rects = {}
+        button_y = menu_y + 40
         
         if tower_type == 3:  # basic veža
             # rapid fire upgrade
@@ -781,11 +842,12 @@ class Tower():
             name_text = self.font.render("Rapid", True, 
                                        (255, 255, 0) if self.economy.can_afford(self.upgrades["rapid_fire"]["cost"] * (2 if is_gold_tile else 1)) 
                                        else (255, 0, 0))
+            
+            name_rect = name_text.get_rect(centerx=rapid_fire.centerx, y=button_y + 5)
             cost_text = self.font.render(f"${self.upgrades['rapid_fire']['cost'] * (2 if is_gold_tile else 1)}", True, 
                                        (255, 255, 0) if self.economy.can_afford(self.upgrades["rapid_fire"]["cost"] * (2 if is_gold_tile else 1)) 
                                        else (255, 0, 0))
             
-            name_rect = name_text.get_rect(centerx=rapid_fire.centerx, y=button_y + 5)
             cost_rect = cost_text.get_rect(centerx=rapid_fire.centerx, y=button_y + 25)
             
             self.window.blit(name_text, name_rect)
@@ -804,14 +866,14 @@ class Tower():
                                        (255, 255, 0) if self.economy.can_afford(self.upgrades["double_shot"]["cost"] * (2 if is_gold_tile else 1)) 
                                        else (255, 0, 0))
             
-            name_rect = name_text.get_rect(centerx=double_shot.centerx, y=button_y + 5)
+            double_name_rect = name_text.get_rect(centerx=double_shot.centerx, y=button_y + 5)
             cost_rect = cost_text.get_rect(centerx=double_shot.centerx, y=button_y + 25)
             
-            self.window.blit(name_text, name_rect)
+            self.window.blit(name_text, double_name_rect)
             self.window.blit(cost_text, cost_rect)
             
             upgrade_rects["double_shot"] = double_shot
-
+            
             # popis upgradov
             description_y = button_y + button_height + 10
             if rapid_fire.collidepoint(pygame.mouse.get_pos()):
@@ -835,6 +897,9 @@ class Tower():
             name_text = self.font.render("Pierce", True, 
                                        (255, 255, 0) if self.economy.can_afford(self.upgrades["piercing_beam"]["cost"] * (2 if is_gold_tile else 1)) 
                                        else (255, 0, 0))
+            cost_text = self.font.render(f"${self.upgrades['piercing_beam']['cost'] * (2 if is_gold_tile else 1)}", True,
+                                       (255, 255, 0) if self.economy.can_afford(self.upgrades["piercing_beam"]["cost"] * (2 if is_gold_tile else 1))
+                                       else (255, 0, 0))
             
             name_rect = name_text.get_rect(centerx=piercing.centerx, y=button_y + 5)
             cost_rect = cost_text.get_rect(centerx=piercing.centerx, y=button_y + 25)
@@ -851,18 +916,18 @@ class Tower():
             name_text = self.font.render("Charge", True, 
                                        (255, 255, 0) if self.economy.can_afford(self.upgrades["overcharge"]["cost"] * (2 if is_gold_tile else 1)) 
                                        else (255, 0, 0))
-            cost_text = self.font.render(f"${self.upgrades['overcharge']['cost'] * (2 if is_gold_tile else 1)}", True, 
-                                       (255, 255, 0) if self.economy.can_afford(self.upgrades["overcharge"]["cost"] * (2 if is_gold_tile else 1)) 
+            cost_text = self.font.render(f"${self.upgrades['overcharge']['cost'] * (2 if is_gold_tile else 1)}", True,
+                                       (255, 255, 0) if self.economy.can_afford(self.upgrades["overcharge"]["cost"] * (2 if is_gold_tile else 1))
                                        else (255, 0, 0))
             
-            name_rect = name_text.get_rect(centerx=overcharge.centerx, y=button_y + 5)
+            overcharge_name_rect = name_text.get_rect(centerx=overcharge.centerx, y=button_y + 5)
             cost_rect = cost_text.get_rect(centerx=overcharge.centerx, y=button_y + 25)
             
-            self.window.blit(name_text, name_rect)
+            self.window.blit(name_text, overcharge_name_rect)
             self.window.blit(cost_text, cost_rect)
             
             upgrade_rects["overcharge"] = overcharge
-
+            
             # popis upgradov
             description_y = button_y + button_height + 10
             if piercing.collidepoint(pygame.mouse.get_pos()):
@@ -877,7 +942,7 @@ class Tower():
                 desc_rect = desc_text.get_rect(centerx=menu_x + menu_width//2, y=description_y)
                 self.window.blit(desc_text, desc_rect)
                 description_y += 20
-            
+                
         elif tower_type == 2:  # cannon veža
             # heavy shells upgrade
             heavy = pygame.draw.rect(self.window, (40, 40, 40),
@@ -905,15 +970,18 @@ class Tower():
             name_text = self.font.render("Cluster", True, 
                                        (255, 255, 0) if self.economy.can_afford(self.upgrades["cluster_bombs"]["cost"] * (2 if is_gold_tile else 1)) 
                                        else (255, 0, 0))
+            cost_text = self.font.render(f"${self.upgrades['cluster_bombs']['cost'] * (2 if is_gold_tile else 1)}", True,
+                                       (255, 255, 0) if self.economy.can_afford(self.upgrades["cluster_bombs"]["cost"] * (2 if is_gold_tile else 1))
+                                       else (255, 0, 0))
             
-            name_rect = name_text.get_rect(centerx=cluster.centerx, y=button_y + 5)
+            cluster_name_rect = name_text.get_rect(centerx=cluster.centerx, y=button_y + 5)
             cost_rect = cost_text.get_rect(centerx=cluster.centerx, y=button_y + 25)
             
-            self.window.blit(name_text, name_rect)
+            self.window.blit(name_text, cluster_name_rect)
             self.window.blit(cost_text, cost_rect)
             
             upgrade_rects["cluster_bombs"] = cluster
-
+            
             # popis upgradov
             description_y = button_y + button_height + 10
             if heavy.collidepoint(pygame.mouse.get_pos()):
@@ -928,45 +996,40 @@ class Tower():
                 desc_rect = desc_text.get_rect(centerx=menu_x + menu_width//2, y=description_y)
                 self.window.blit(desc_text, desc_rect)
                 description_y += 20
-            
-        return upgrade_rects
+                
+        return {"stats": stats_button, **upgrade_rects}
 
-    def handle_upgrade_click(self, mouse_x, mouse_y):
-        if self.menu_state != "upgrade" or not self.upgrade_tower_pos:
-            return
+    def handle_upgrade_click(self, pos_x, pos_y):
+        """Spracuje kliknutie v upgrade menu"""
+        if not self.upgrade_tower_pos:
+            return False
+            
+        buttons = self.draw_upgrade_menu()
+        if not buttons:
+            return False
+            
+        # Kontrola kliknutia na stats tlačidlo
+        if "stats" in buttons and buttons["stats"].collidepoint(pos_x, pos_y):
+            self.show_stats = not self.show_stats
+            return True
             
         grid_x, grid_y = self.upgrade_tower_pos
         
         # kontrola či je na zlatom políčku
         is_gold_tile = self.game_map.map_1[grid_y][grid_x] == 3
         
-        # zistenie typu veže
-        tower_type = None
-        for x, y, t in self.tower_positions:
-            if x == grid_x and y == grid_y:
-                tower_type = t
-                break
-                
-        if tower_type not in [1, 2, 3]:  # ak to nie je laser, cannon alebo basic veža
-            return
-            
-        # kontrola či už veža nemá upgrade
-        if (grid_x, grid_y) in self.tower_upgrades:
-            return
-            
-        buttons = self.draw_upgrade_menu()
-        if not buttons:
-            return
-            
+        # Kontrola kliknutia na upgrade tlačidlá
         for upgrade_type, button in buttons.items():
-            if button.collidepoint(mouse_x, mouse_y):
+            if upgrade_type != "stats" and button.collidepoint(pos_x, pos_y):
                 cost = self.upgrades[upgrade_type]["cost"] * (2 if is_gold_tile else 1)
                 if self.economy.can_afford(cost):
                     self.economy.spend_coins(cost)
                     self.tower_upgrades[(grid_x, grid_y)] = upgrade_type
                     self.menu_state = None
                     self.upgrade_tower_pos = None
-                break
+                return True
+                
+        return False
 
     def draw_towers(self, enemies, is_paused=False):
         # vykreslenie všetkých veží
@@ -1060,7 +1123,7 @@ class Tower():
         elif self.menu_state == "upgrade":
             grid_x, grid_y = self.upgrade_tower_pos
             menu_x = grid_x * self.cell_size
-            menu_y = grid_y * self.cell_size - 140
+            menu_y = grid_y * self.cell_size - 200
             
             if menu_y < 0:
                 menu_y = grid_y * self.cell_size + self.cell_size
@@ -1068,7 +1131,7 @@ class Tower():
             if menu_x + 240 > self.window_width:
                 menu_x = self.window_width - 240
                 
-            menu_rect = pygame.Rect(menu_x, menu_y, 240, 140)
+            menu_rect = pygame.Rect(menu_x, menu_y, 240, 200)
             if not menu_rect.collidepoint(pos_x, pos_y):
                 self.close_all_menus()
                 return True
@@ -1090,5 +1153,101 @@ class Tower():
                 return True
                 
         return False
+
+    def get_tower_stats(self, tower_type, grid_x, grid_y):
+        """Vráti finálne štatistiky veže po aplikovaní všetkých bonusov"""
+        base_stats = self.tower_types[tower_type].copy()
+        
+        # Aplikovanie bonusov zo shopu
+        shop_damage_mult, shop_speed_mult = self.shop.get_tower_multipliers(tower_type)
+        
+        # Aplikovanie upgrade bonusov
+        if (grid_x, grid_y) in self.tower_upgrades:
+            upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+            upgrade_effects = self.upgrades[upgrade_type]["effects"]
+            
+            if "damage" in upgrade_effects:
+                base_stats["damage"] = upgrade_effects["damage"]
+            if "cooldown" in upgrade_effects:
+                base_stats["cooldown"] = upgrade_effects["cooldown"]
+        
+        # Aplikovanie shop multiplikátorov na finálne hodnoty
+        if "damage" in base_stats:
+            base_stats["damage"] *= shop_damage_mult
+        if "cooldown" in base_stats:
+            base_stats["cooldown"] /= shop_speed_mult  # delenie pre cooldown (nižší cooldown = vyššia rýchlosť)
+            
+        return base_stats
+
+    def shoot(self, tower_pos, enemies):
+        """Vystreli na najbližneho nepriateľa"""
+        x, y, tower_type = tower_pos
+        
+        # Získanie finálnych štatistík veže
+        tower_stats = self.get_tower_stats(tower_type, x, y)
+        
+        # Kontrola cooldownu
+        if tower_type in [1, 2, 3]:  # len pre útočné veže
+            cooldown = tower_stats.get("cooldown", self.tower_types[tower_type]["cooldown"])
+            if pygame.time.get_ticks() - self.last_shot.get((x, y), 0) < cooldown:
+                return
+        
+        # Nájdenie najbližšieho nepriateľa v dosahu
+        tower_range = tower_stats.get("range", self.tower_types[tower_type]["range"])
+        target = self.find_target(x, y, enemies, tower_range)
+        
+        if target:
+            damage = tower_stats.get("damage", self.tower_types[tower_type]["damage"])
+            
+            if tower_type == 1:  # laser
+                if (x, y) in self.tower_upgrades and self.tower_upgrades[(x, y)] == "piercing_beam":
+                    # Piercing beam logika
+                    targets = self.find_targets_in_line(x, y, target, enemies, tower_range)
+                    for i, enemy in enumerate(targets):
+                        if i == 0:
+                            enemy.take_damage(damage)
+                        else:
+                            enemy.take_damage(damage * self.upgrades["piercing_beam"]["effects"]["second_damage"])
+                        if not enemy.alive:
+                            self.economy.coins += enemy.reward
+                else:
+                    # Normálny laser útok
+                    target.take_damage(damage)
+                    if not target.alive:
+                        self.economy.coins += target.reward
+                
+                self.laser_sound.play()
+                
+            elif tower_type == 2:  # cannon
+                upgrade = self.tower_upgrades.get((x, y))
+                if upgrade == "heavy_shells":
+                    # Heavy shells logika - jeden silný výstrel
+                    self.create_projectile(x, y, target, damage, tower_type, [target], upgrade)
+                elif upgrade == "cluster_bombs":
+                    # Cluster bombs logika - tri výbuchy
+                    self.create_projectile(x, y, target, damage, tower_type, enemies, upgrade)
+                else:
+                    # Normálny cannon útok
+                    targets = self.find_targets_in_range(x, y, target, enemies, self.cell_size)
+                    self.create_projectile(x, y, target, damage, tower_type, targets)
+                
+                self.cannon_sound.play()
+                
+            elif tower_type == 3:  # basic
+                upgrade = self.tower_upgrades.get((x, y))
+                if upgrade == "double_shot":
+                    # Double shot logika
+                    angle = 15  # uhol medzi projektilmi
+                    self.create_projectile(x, y, target, self.upgrades["double_shot"]["effects"]["damage"], 
+                                        tower_type, [target], upgrade, -angle)
+                    self.create_projectile(x, y, target, self.upgrades["double_shot"]["effects"]["damage"], 
+                                        tower_type, [target], upgrade, angle)
+                else:
+                    # Normálny basic útok
+                    self.create_projectile(x, y, target, damage, tower_type, [target])
+                
+                self.basic_sound.play()
+            
+            self.last_shot[(x, y)] = pygame.time.get_ticks()
 
 

@@ -138,7 +138,6 @@ class Enemy:
             self.move()
 
     def update_path(self):
-        """Reset enemy position when map changes"""
         # nájdenie štartovacej pozície (hodnota 2 v mape)
         for y, row in enumerate(self.game_map.map_1):
             for x, value in enumerate(row):

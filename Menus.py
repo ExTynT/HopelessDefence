@@ -14,8 +14,16 @@ class Menus:
         # inicializácia menu hudby
         pygame.mixer.init()
         self.menu_music = pygame.mixer.Sound("music/Pixel_Dream_menu.mp3")
-        self.menu_music.set_volume(0.5)  # nastavenie hlasitosti na 50%
+        self.menu_music.set_volume(0.2)
         self.is_music_playing = False
+        
+        # načítanie zvukových efektov
+        self.shop_music = pygame.mixer.Sound("music/shop_bg.mp3")
+        self.shop_music.set_volume(0.2)
+        self.game_over_sound = pygame.mixer.Sound("music/game_over.mp3")
+        self.game_over_sound.set_volume(0.3)
+        self.boss_victory_sound = pygame.mixer.Sound("music/boss_victory.mp3")
+        self.boss_victory_sound.set_volume(0.3)
         
         # načítanie pozadia menu
         self.menu_background = pygame.image.load("sprites/menu/background.png")
@@ -108,6 +116,11 @@ class Menus:
         return {"menu": menu_rect}
         
     def draw_game_over(self, mouse_pos):
+        # Play game over sound if not already playing
+        if not self.is_music_playing:
+            self.game_over_sound.play(-1)  # loop indefinitely
+            self.is_music_playing = True
+        
         self.window.fill((20, 20, 20))
         
         # Nadpis
@@ -121,65 +134,97 @@ class Menus:
         return {"menu": menu_rect}
     
     def draw_boss_victory(self, mouse_pos, hp_multiplier, income_rate):
-        # vykreslenie pozadia
-        self.window.fill((40, 40, 40))
+        # Play boss victory sound if not already playing
+        if not self.is_music_playing:
+            self.boss_victory_sound.play(-1)  # loop indefinitely
+            self.is_music_playing = True
+        
+        # pozadie
+        self.window.fill((30, 30, 30))
         
         # nadpis
         title = self.title_font.render("BOSS DEFEATED!", True, (255, 215, 0))
-        title_rect = title.get_rect(center=(self.window_width // 2, 100))
+        title_rect = title.get_rect(centerx=self.window_width//2, y=80)  # posunuté vyššie
         self.window.blit(title, title_rect)
         
-        # vykreslenie modifierov
-        modifiers_text = self.font.render("CURRENT MODIFIERS:", True, (255, 255, 255))
-        modifiers_rect = modifiers_text.get_rect(center=(self.window_width // 2, 200))
-        self.window.blit(modifiers_text, modifiers_rect)
+        # štatistiky
+        stats_y = 150  # posunuté vyššie
         
-        # HP modifier
-        hp_text = self.font.render(f"Enemy HP: +{int((hp_multiplier - 1) * 100)}%", True, (255, 100, 100))
-        hp_rect = hp_text.get_rect(center=(self.window_width // 2, 250))
+        # Aktuálne hodnoty
+        current_text = self.font.render("CURRENT:", True, (255, 255, 255))
+        current_rect = current_text.get_rect(centerx=self.window_width//2, y=stats_y)
+        self.window.blit(current_text, current_rect)
+        
+        hp_text = self.font.render(f"Enemy HP: +{int((hp_multiplier-1)*100)}%", True, (255, 255, 255))
+        hp_rect = hp_text.get_rect(centerx=self.window_width//2, y=stats_y + 35)  # menší odstup
         self.window.blit(hp_text, hp_rect)
         
-        # Income modifier
-        income_text = self.font.render(f"Income Rate: {income_rate}/s", True, (255, 215, 0))
-        income_rect = income_text.get_rect(center=(self.window_width // 2, 300))
+        income_text = self.font.render(f"Income Rate: {income_rate}", True, (255, 255, 255))
+        income_rect = income_text.get_rect(centerx=self.window_width//2, y=stats_y + 65)  # menší odstup
         self.window.blit(income_text, income_rect)
         
-        # Next level info
-        next_info = self.font.render("Next Level:", True, (255, 255, 255))
-        next_info_rect = next_info.get_rect(center=(self.window_width // 2, 350))
-        self.window.blit(next_info, next_info_rect)
+        # Budúce hodnoty
+        next_text = self.font.render("NEXT LEVEL:", True, (255, 0, 0))
+        next_rect = next_text.get_rect(centerx=self.window_width//2, y=stats_y + 110)  # menší odstup
+        self.window.blit(next_text, next_rect)
         
-        # HP increase info
-        hp_increase_text = self.font.render("- Enemy HP +25%", True, (255, 100, 100))
-        hp_increase_rect = hp_increase_text.get_rect(center=(self.window_width // 2, 380))
-        self.window.blit(hp_increase_text, hp_increase_rect)
+        next_hp = self.font.render(f"Enemy HP: +{int((hp_multiplier*1.25-1)*100)}%", True, (255, 0, 0))
+        next_hp_rect = next_hp.get_rect(centerx=self.window_width//2, y=stats_y + 145)  # menší odstup
+        self.window.blit(next_hp, next_hp_rect)
         
-        changes_text = self.font.render("- Income -1/s", True, (255, 100, 100))
-        changes_rect = changes_text.get_rect(center=(self.window_width // 2, 410))
-        self.window.blit(changes_text, changes_rect)
+        next_income = self.font.render(f"Income Rate: {max(10, income_rate-1)}", True, (255, 0, 0))
+        next_income_rect = next_income.get_rect(centerx=self.window_width//2, y=stats_y + 175)  # menší odstup
+        self.window.blit(next_income, next_income_rect)
         
-        coins_text = self.font.render("- Coins reset to 150", True, (255, 100, 100))
-        coins_rect = coins_text.get_rect(center=(self.window_width // 2, 440))
-        self.window.blit(coins_text, coins_rect)
+        # tlačidlá - posunuté vyššie
+        button_width = 200
+        button_height = 50
+        button_margin = 20
+        buttons_y = stats_y + 230  # posunuté vyššie
         
-        # tlačidlá
-        continue_text = self.font.render("Continue", True, (255, 215, 0))
-        continue_rect = continue_text.get_rect(center=(self.window_width // 2 - 100, 500))
-        self.window.blit(continue_text, continue_rect)
+        # Continue tlačidlo
+        continue_button = pygame.draw.rect(self.window, (50, 50, 50),
+                                         (self.window_width//2 - button_width//2,
+                                          buttons_y,
+                                          button_width, button_height))
         
-        menu_text = self.font.render("Menu", True, (255, 215, 0))
-        menu_rect = menu_text.get_rect(center=(self.window_width // 2 + 100, 500))
-        self.window.blit(menu_text, menu_rect)
+        # Shop tlačidlo
+        shop_button = pygame.draw.rect(self.window, (50, 50, 50),
+                                     (self.window_width//2 - button_width//2,
+                                      buttons_y + button_height + button_margin,
+                                      button_width, button_height))
         
-        # zvýraznenie tlačidiel pri hover
-        if self.is_mouse_over_button("Continue", 500, mouse_pos, -100):
-            pygame.draw.rect(self.window, (255, 215, 0), continue_rect, 2)
-        if self.is_mouse_over_button("Menu", 500, mouse_pos, 100):
-            pygame.draw.rect(self.window, (255, 215, 0), menu_rect, 2)
+        # Menu tlačidlo
+        menu_button = pygame.draw.rect(self.window, (50, 50, 50),
+                                     (self.window_width//2 - button_width//2,
+                                      buttons_y + (button_height + button_margin) * 2,
+                                      button_width, button_height))
+        
+        # hover efekt
+        if continue_button.collidepoint(mouse_pos):
+            pygame.draw.rect(self.window, (70, 70, 70), continue_button)
+        if shop_button.collidepoint(mouse_pos):
+            pygame.draw.rect(self.window, (70, 70, 70), shop_button)
+        if menu_button.collidepoint(mouse_pos):
+            pygame.draw.rect(self.window, (70, 70, 70), menu_button)
+        
+        # text na tlačidlách
+        continue_text = self.font.render("CONTINUE", True, (255, 215, 0))
+        shop_text = self.font.render("SHOP", True, (255, 215, 0))
+        menu_text = self.font.render("MENU", True, (255, 215, 0))
+        
+        continue_text_rect = continue_text.get_rect(center=continue_button.center)
+        shop_text_rect = shop_text.get_rect(center=shop_button.center)
+        menu_text_rect = menu_text.get_rect(center=menu_button.center)
+        
+        self.window.blit(continue_text, continue_text_rect)
+        self.window.blit(shop_text, shop_text_rect)
+        self.window.blit(menu_text, menu_text_rect)
         
         return {
-            "continue": continue_rect,
-            "menu": menu_rect
+            "continue": continue_button,
+            "shop": shop_button,
+            "menu": menu_button
         }
     
     def is_mouse_over_button(self, text, y_position, mouse_pos, offset_x=0):
@@ -190,10 +235,16 @@ class Menus:
                                 text_rect.width, text_rect.height)
         return button_rect.collidepoint(mouse_pos)
     
+    def stop_all_sounds(self):
+        """Zastaví všetky zvuky"""
+        self.menu_music.stop()
+        self.game_over_sound.stop()
+        self.boss_victory_sound.stop()
+        self.is_music_playing = False
+
     def start_game_timer(self):
         # zastavenie menu hudby pri začatí hry
-        self.menu_music.stop()
-        self.is_music_playing = False
+        self.stop_all_sounds()
         self.game_start_time = pygame.time.get_ticks() / 1000  # čas v sekundách
         
     def get_completion_time(self):
