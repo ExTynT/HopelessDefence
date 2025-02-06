@@ -285,10 +285,7 @@ Hra sa odohráva na jednej **dynamicky sa meniacej mape**, kde sa nepretržite z
     > Basic Tower: Tlmený výstrel
     > Laser Tower: Vysokofrekvenčný zvuk
     > Cannon Tower: Dunivý výstrel dela
-  - Herné udalosti:
-    > Stavba veže
-    > Začiatok/koniec vlny
-    > Varovné signály
+
 ```
 
 ## 5. Herný zážitok
