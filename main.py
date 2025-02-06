@@ -48,9 +48,9 @@ def init_game():
         current_music_track = 1
         game_music = pygame.mixer.Sound(f"music/{current_music_track}_bg.mp3")
         game_music.set_volume(0.2)
-        game_music.play(-1)  # -1 means loop indefinitely
+        game_music.play(-1)  # -1 znamená loop indefinitely
         is_game_music_playing = True
-    # Reset menu music state
+    # resetovanie stavu music menu
     menus.is_music_playing = False
 
 def draw_ui_panel():
@@ -217,6 +217,9 @@ while run:
                         menus.stop_all_sounds()
                         # Zmena hudby na ďalšiu skladbu
                         change_background_music()
+                        
+                        # Reset HP na 100
+                        player_hp = player_max_hp
                         
                         # Predaj všetkých veží
                         for tower_pos in tower.tower_positions[:]:

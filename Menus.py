@@ -116,9 +116,8 @@ class Menus:
         return {"menu": menu_rect}
         
     def draw_game_over(self, mouse_pos):
-        # Play game over sound if not already playing
         if not self.is_music_playing:
-            self.game_over_sound.play(-1)  # loop indefinitely
+            self.game_over_sound.play(-1)  # loop 
             self.is_music_playing = True
         
         self.window.fill((20, 20, 20))
@@ -136,7 +135,7 @@ class Menus:
     def draw_boss_victory(self, mouse_pos, hp_multiplier, income_rate):
         # Play boss victory sound if not already playing
         if not self.is_music_playing:
-            self.boss_victory_sound.play(-1)  # loop indefinitely
+            self.boss_victory_sound.play(-1)  # loop 
             self.is_music_playing = True
         
         # pozadie

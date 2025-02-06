@@ -7,7 +7,7 @@ class Shop:
         self.window_height = window_height
         self.credits = 0
         self.current_page = "upgrades"  # or "stats"
-        self.right_aligned = False  # New alignment state
+        self.right_aligned = False  
         self.font = pygame.font.Font("fonts/joystix monospace.otf", 16)
         
         # Načítanie obrázkov veží pre shop
@@ -113,20 +113,20 @@ class Shop:
             name_x = base_x + 100 if not self.right_aligned else base_x - 100
             self.window.blit(name_text, (name_x, y_offset))
             
-            # Damage upgrade - positions adjusted for alignment
+            # Damage upgrade 
             dmg_x = base_x + 100 if not self.right_aligned else base_x - 100
             dmg_text = self.font.render(f"Damage +{self.tower_upgrades[tower]['damage']*10}%", True, (255, 255, 255))
             self.window.blit(dmg_text, (dmg_x, y_offset + 40))
             slider_x = base_x + 250 if not self.right_aligned else self.window_width - 450
             self.draw_slider(slider_x, y_offset + 40, 250, 20, self.tower_upgrades[tower]['damage'])
             
-            # Cost pre damage upgrade - posunuté doprava
+            # Cost pre damage upgrade 
             cost = self.get_upgrade_cost(tower, "damage")
             cost_color = (255, 255, 0) if self.can_afford_upgrade(cost) else (255, 0, 0)
             cost_text = self.font.render(f"${cost}", True, cost_color)
             self.window.blit(cost_text, (570, y_offset + 40))
             
-            # + a - tlačidlá pre damage - posunuté ďalej
+            # + a - tlačidlá pre damage 
             pygame.draw.rect(self.window, (0, 200, 0), (630, y_offset + 40, 30, 20))
             pygame.draw.rect(self.window, (200, 0, 0), (670, y_offset + 40, 30, 20))
             plus = self.font.render("+", True, (255, 255, 255))
@@ -134,18 +134,18 @@ class Shop:
             self.window.blit(plus, (638, y_offset + 40))
             self.window.blit(minus, (680, y_offset + 40))
             
-            # Speed upgrade - väčší odstup
+            # Speed upgrade 
             speed_text = self.font.render(f"Speed +{self.tower_upgrades[tower]['speed']*10}%", True, (255, 255, 255))
             self.window.blit(speed_text, (150, y_offset + 80))
             self.draw_slider(300, y_offset + 80, 250, 20, self.tower_upgrades[tower]['speed'])
             
-            # Cost pre speed upgrade - posunuté doprava
+            # Cost pre speed upgrade 
             cost = self.get_upgrade_cost(tower, "speed")
             cost_color = (255, 255, 0) if self.can_afford_upgrade(cost) else (255, 0, 0)
             cost_text = self.font.render(f"${cost}", True, cost_color)
             self.window.blit(cost_text, (570, y_offset + 80))
             
-            # + a - tlačidlá pre speed - posunuté ďalej
+            # + a - tlačidlá pre speed 
             pygame.draw.rect(self.window, (0, 200, 0), (630, y_offset + 80, 30, 20))
             pygame.draw.rect(self.window, (200, 0, 0), (670, y_offset + 80, 30, 20))
             self.window.blit(plus, (638, y_offset + 80))
@@ -159,7 +159,7 @@ class Shop:
         title = self.font.render("TOWER STATS", True, (255, 215, 0))
         self.window.blit(title, (self.window_width//2 - title.get_width()//2, 80))
         
-        # Calculate x position based on alignment
+        # Vypočítanie pozície x na základe allignment
         base_x = 50 if not self.right_aligned else self.window_width - 650
         
         # Základné hodnoty veží
@@ -206,27 +206,31 @@ class Shop:
 
     def draw(self, mouse_pos):
         """Vykreslí aktuálnu stránku shopu"""
-        # Spustenie hudby ak ešte nehrá
-        if not self.is_music_playing:
-            self.shop_music.play(-1)  # -1 znamená nekonečné opakovanie
-            self.is_music_playing = True
-            
-        # Pozadie na celé okno
+        # Vykreslenie pozadia
         self.window.fill((30, 30, 30))
         
+        # Spustenie hudby ak ešte nehrá
+        if not self.is_music_playing:
+            self.shop_music.play(-1)
+            self.is_music_playing = True
+        
         # Return tlačidlo
-        return_button = pygame.draw.rect(self.window, (50, 50, 50), (20, 20, 130, 40))
-        return_text = self.font.render("RETURN", True, (255, 255, 255))
-        self.window.blit(return_text, (35, 30))
+        return_button = pygame.draw.rect(self.window, (40, 40, 40), (20, 20, 130, 40))
+        return_text = self.font.render("Return", True, (255, 215, 0))
+        return_rect = return_text.get_rect(center=return_button.center)
+        self.window.blit(return_text, return_rect)
         
-        # Kredity - posunuté ďalej doľava
-        credits_text = self.font.render(f"Credits: ${self.credits}", True, (255, 255, 255))
-        self.window.blit(credits_text, (self.window_width - 400, 30))
+        # Kredity - v strede medzi tlačidlami
+        credits_text = self.font.render(f"Credits: ${self.credits}", True, (255, 215, 0))
+        credits_rect = credits_text.get_rect(centerx=self.window_width//2, centery=40)
+        self.window.blit(credits_text, credits_rect)
         
-        # Prepínacie tlačidlo - úplne na pravom okraji
-        switch_button = pygame.draw.rect(self.window, (50, 50, 50), (self.window_width - 100, 20, 80, 40))
-        switch_text = self.font.render("SWITCH", True, (255, 255, 255))
-        self.window.blit(switch_text, (self.window_width - 95, 30))
+        # Prepínacie tlačidlo - nová šírka
+        switch_button = pygame.draw.rect(self.window, (40, 40, 40), 
+                                       (self.window_width - 150, 20, 130, 40))  # Rozšírenie na 130px
+        switch_text = self.font.render("Switch", True, (255, 215, 0))
+        switch_rect = switch_text.get_rect(center=switch_button.center)
+        self.window.blit(switch_text, switch_rect)
         
         if self.current_page == "upgrades":
             self.draw_upgrades_page()
@@ -245,7 +249,7 @@ class Shop:
             return True
             
         # Kontrola prepínacieho tlačidla - nová pozícia
-        if self.window_width - 100 <= pos_x <= self.window_width - 20 and 20 <= pos_y <= 60:
+        if self.window_width - 150 <= pos_x <= self.window_width - 20 and 20 <= pos_y <= 60:  # Rozšírenie zóny doľava
             self.current_page = "stats" if self.current_page == "upgrades" else "upgrades"
             return False
             
