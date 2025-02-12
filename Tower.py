@@ -19,6 +19,8 @@ class Tower():
         self.sell_tower_pos = None  # pozícia veže pre predaj
         self.upgrade_tower_pos = None  # pozícia veže pre upgrade
         self.show_stats = False  # nový flag pre zobrazenie štatistík
+        self.firing_towers = {}  # sledovanie stavu streľby pre každú vežu {(x,y): timer}
+        self.firing_animation_duration = 10  # trvanie firing animácie v snímkach
         
         # Vytvorenie stats ikony
         self.stats_icon = pygame.Surface((20, 20), pygame.SRCALPHA)
@@ -42,14 +44,75 @@ class Tower():
         self.tower_1 = pygame.image.load("sprites/towers/tower_1_laser.png")
         self.tower_1 = pygame.transform.scale(self.tower_1, (self.cell_size, self.cell_size))
         
+        # načítanie firing spritov pre laser vežu
+        self.tower_1_firing = pygame.image.load("sprites/towers/tower_1_laser_s.png")  # sprite pre strieľanie základnej veže
+        self.tower_1_firing = pygame.transform.scale(self.tower_1_firing, (self.cell_size, self.cell_size))
+        
+        self.tower_1_piercing_firing = pygame.image.load("sprites/towers/tower_1_laser_1_s.png")  # sprite pre strieľanie piercing upgradu
+        self.tower_1_piercing_firing = pygame.transform.scale(self.tower_1_piercing_firing, (self.cell_size, self.cell_size))
+        
+        self.tower_1_overcharge_firing = pygame.image.load("sprites/towers/tower_1_laser_2_s.png")  # sprite pre strieľanie overcharge upgradu
+        self.tower_1_overcharge_firing = pygame.transform.scale(self.tower_1_overcharge_firing, (self.cell_size, self.cell_size))
+        
+        # načítanie upgrade spritov pre laser vežu
+        self.tower_1_piercing = pygame.image.load("sprites/towers/tower_1_laser_1.png")
+        self.tower_1_piercing = pygame.transform.scale(self.tower_1_piercing, (self.cell_size, self.cell_size))
+        
+        self.tower_1_overcharge = pygame.image.load("sprites/towers/tower_1_laser_2.png")
+        self.tower_1_overcharge = pygame.transform.scale(self.tower_1_overcharge, (self.cell_size, self.cell_size))
+        
+        self.tower_1_overcharge_active = pygame.image.load("sprites/towers/tower_1_laser_2_o.png")
+        self.tower_1_overcharge_active = pygame.transform.scale(self.tower_1_overcharge_active, (self.cell_size, self.cell_size))
+        
         self.tower_2 = pygame.image.load("sprites/towers/tower_2_cannon.png")
         self.tower_2 = pygame.transform.scale(self.tower_2, (self.cell_size, self.cell_size))
+        
+        # načítanie firing sprite pre cannon
+        self.tower_2_firing = pygame.image.load("sprites/towers/tower_2_cannon_fire.png")
+        self.tower_2_firing = pygame.transform.scale(self.tower_2_firing, (self.cell_size, self.cell_size))
+        
+        # načítanie upgrade spritov pre cannon
+        self.tower_2_heavy = pygame.image.load("sprites/towers/tower_2_cannon_1.png")
+        self.tower_2_heavy = pygame.transform.scale(self.tower_2_heavy, (self.cell_size, self.cell_size))
+        self.tower_2_heavy_firing = pygame.image.load("sprites/towers/tower_2_cannon_1_r.png")
+        self.tower_2_heavy_firing = pygame.transform.scale(self.tower_2_heavy_firing, (self.cell_size, self.cell_size))
+        
+        self.tower_2_cluster = pygame.image.load("sprites/towers/tower_2_cannon_2.png")
+        self.tower_2_cluster = pygame.transform.scale(self.tower_2_cluster, (self.cell_size, self.cell_size))
+        self.tower_2_cluster_firing = pygame.image.load("sprites/towers/tower_2_cannon_2_r.png")
+        self.tower_2_cluster_firing = pygame.transform.scale(self.tower_2_cluster_firing, (self.cell_size, self.cell_size))
         
         self.tower_3 = pygame.image.load("sprites/towers/tower_3_basic.png")
         self.tower_3 = pygame.transform.scale(self.tower_3, (self.cell_size, self.cell_size))
         
+        # načítanie firing spritov pre basic vežu
+        self.tower_3_firing = pygame.image.load("sprites/towers/tower_3_basic_s.png")  # sprite pre strieľanie základnej veže
+        self.tower_3_firing = pygame.transform.scale(self.tower_3_firing, (self.cell_size, self.cell_size))
+        
+        # načítanie upgrade spritov pre basic vežu
+        self.tower_3_rapid = pygame.image.load("sprites/towers/tower_3_basic_1.png")
+        self.tower_3_rapid = pygame.transform.scale(self.tower_3_rapid, (self.cell_size, self.cell_size))
+        self.tower_3_rapid_firing = pygame.image.load("sprites/towers/tower_3_basic_1_s.png")  # sprite pre strieľanie rapid fire upgradu
+        self.tower_3_rapid_firing = pygame.transform.scale(self.tower_3_rapid_firing, (self.cell_size, self.cell_size))
+        
+        self.tower_3_double = pygame.image.load("sprites/towers/tower_3_basic_2.png")
+        self.tower_3_double = pygame.transform.scale(self.tower_3_double, (self.cell_size, self.cell_size))
+        self.tower_3_double_firing = pygame.image.load("sprites/towers/tower_3_basic_2_s.png")  # sprite pre strieľanie double shot upgradu
+        self.tower_3_double_firing = pygame.transform.scale(self.tower_3_double_firing, (self.cell_size, self.cell_size))
+        
         self.tower_4 = pygame.image.load("sprites/towers/tower_4_boosting.png")
         self.tower_4 = pygame.transform.scale(self.tower_4, (self.cell_size, self.cell_size))
+        
+        # načítanie upgrade spritov pre boosting vežu
+        self.tower_4_dmg = pygame.image.load("sprites/towers/tower_4_boosting_1.png")
+        self.tower_4_dmg = pygame.transform.scale(self.tower_4_dmg, (self.cell_size, self.cell_size))
+        
+        self.tower_4_spd = pygame.image.load("sprites/towers/tower_4_boosting_2.png")
+        self.tower_4_spd = pygame.transform.scale(self.tower_4_spd, (self.cell_size, self.cell_size))
+        
+        # načítanie unboosted sprite pre boosting vežu
+        self.tower_4_unboosted = pygame.image.load("sprites/towers/tower_4_boosting_u.png")
+        self.tower_4_unboosted = pygame.transform.scale(self.tower_4_unboosted, (self.cell_size, self.cell_size))
         
         # načítanie boost symbolu
         self.boost_icon = pygame.image.load("sprites/towers/status/red_symbol.png")
@@ -276,9 +339,15 @@ class Tower():
         return False
 
     def get_distance(self, tower_x, tower_y, enemy):
-        # výpočet stredu veže a nepriateľa
+        # výpočet stredu veže
         tower_center_x = tower_x * self.cell_size + self.cell_size // 2
         tower_center_y = tower_y * self.cell_size + self.cell_size // 2
+        
+        # ak je enemy None (pre boosting tower), vrátime 0
+        if enemy is None:
+            return 0
+            
+        # výpočet stredu nepriateľa
         enemy_center_x = enemy.x + enemy.cell_size // 4
         enemy_center_y = enemy.y + enemy.cell_size // 4
         
@@ -489,158 +558,61 @@ class Tower():
                 self.window.blit(self.boost_icon, (indicator_x, indicator_y))
 
     def attack(self, enemies):
-        if not enemies:
-            return
-            
-        # aktualizácia spomalených nepriateľov
-        for enemy in list(self.slowed_enemies.keys()):
-            if not enemy.alive:
-                del self.slowed_enemies[enemy]
+        for x, y, tower_type in self.tower_positions:
+            # Preskočiť boosting tower, ktorá neútočí
+            if tower_type == 4:
                 continue
-            self.slowed_enemies[enemy] -= 1
-            if self.slowed_enemies[enemy] <= 0:
-                del self.slowed_enemies[enemy]
-                enemy.speed = enemy.base_speed  # obnovenie pôvodnej rýchlosti
-        
-        for grid_x, grid_y, tower_type in self.tower_positions:
-            tower_key = (grid_x, grid_y)
-            
-            # získanie multiplikátorov zo shopu
-            damage_mult, speed_mult = self.shop.get_tower_multipliers(tower_type)
-            
-            # aktualizácia cooldownu s rýchlostným multiplikátorom
-            if tower_key in self.tower_cooldowns:
-                # rýchlejší cooldown s speed multiplierom
-                self.tower_cooldowns[tower_key] = max(0, self.tower_cooldowns[tower_key] - speed_mult)
-            else:
-                self.tower_cooldowns[tower_key] = 0
                 
-            # aktualizácia overcharge stavu
-            if tower_type == 1 and (grid_x, grid_y) in self.tower_upgrades:
-                if self.tower_upgrades[(grid_x, grid_y)] == "overcharge":
-                    if tower_key not in self.overcharge_states:
-                        self.overcharge_states[tower_key] = {"active": True, "timer": self.upgrades["overcharge"]["effects"]["active_time"]}
-                    
-                    if self.overcharge_states[tower_key]["timer"] > 0:
-                        self.overcharge_states[tower_key]["timer"] -= 1
-                        if self.overcharge_states[tower_key]["timer"] == 0:
-                            self.overcharge_states[tower_key]["active"] = False
-                            self.tower_cooldowns[tower_key] = self.upgrades["overcharge"]["effects"]["cooldown_time"]
-                    elif self.tower_cooldowns[tower_key] == 0:
-                        self.overcharge_states[tower_key] = {"active": True, "timer": self.upgrades["overcharge"]["effects"]["active_time"]}
+            # Kontrola cooldownu
+            tower_pos = (x, y)
+            if tower_pos in self.tower_cooldowns and self.tower_cooldowns[tower_pos] > 0:
+                self.tower_cooldowns[tower_pos] -= 1
+                continue
             
-            # hľadanie nepriateľov v dosahu
-            enemies_in_range = []
+            # Nájdenie najbližšieho nepriateľa v dosahu
+            valid_enemies = [enemy for enemy in enemies 
+                           if self.is_in_range(x, y, enemy, tower_type) and 
+                           not (hasattr(enemy, 'is_dying_animation') and enemy.is_dying_animation())]
             
-            for enemy in enemies:
-                if enemy.alive and self.is_in_range(grid_x, grid_y, enemy, tower_type):
-                    distance = self.get_distance(grid_x, grid_y, enemy)
-                    enemies_in_range.append((enemy, distance))
-            
-            # zoradenie nepriateľov podľa vzdialenosti
-            enemies_in_range.sort(key=lambda x: x[1])
-            
-            # kontrola či je veža na zlatom políčku (3) pre boost a či je v dosahu boosting tower
-            is_boosted = self.game_map.map_1[grid_y][grid_x] == 3
-            is_tower_boosted = self.is_boosted_by_tower(grid_x, grid_y)
-            damage_multiplier = damage_mult  # začíname so shop multiplikátorom
-            if is_boosted:
-                damage_multiplier *= 1.25
-            if is_tower_boosted:
-                damage_multiplier *= 1.25
-            
-            if enemies_in_range and tower_type != 4:  # boosting tower neútočí
-                start_x = grid_x * self.cell_size + self.cell_size // 2
-                start_y = grid_y * self.cell_size + self.cell_size // 2
+            if not valid_enemies:
+                continue
                 
-                if tower_type == 1:  # laser
-                    # kontrola či nie je v cooldown stave
-                    if self.tower_cooldowns[tower_key] > 0:
-                        continue
-                        
-                    # kontrola overcharge stavu
-                    if (grid_x, grid_y) in self.tower_upgrades and self.tower_upgrades[(grid_x, grid_y)] == "overcharge":
-                        if self.overcharge_states.get(tower_key, {}).get("active", False):
-                            damage_multiplier *= self.upgrades["overcharge"]["effects"]["damage"]
-                    
-                    # prvý nepriateľ
-                    enemy = enemies_in_range[0][0]
-                    end_x = enemy.x + enemy.cell_size // 4
-                    end_y = enemy.y + enemy.cell_size // 4
-                    
-                    # kreslenie laseru na prvého nepriateľa
-                    pygame.draw.line(self.window, (255,0,0), 
-                                   (start_x, start_y), (end_x, end_y), 2)
-                    self.laser_sound.play()
-                    
-                    # poškodenie prvého nepriateľa s damage multiplierom
-                    enemy.take_damage(self.tower_types[1]["damage"] * damage_multiplier)
-                    if not enemy.alive:
-                        self.economy.coins += enemy.reward
-                    
-                    # piercing beam logika
-                    if (grid_x, grid_y) in self.tower_upgrades and self.tower_upgrades[(grid_x, grid_y)] == "piercing_beam" and len(enemies_in_range) > 1:
-                        # druhý nepriateľ
-                        second_enemy = enemies_in_range[1][0]
-                        second_end_x = second_enemy.x + second_enemy.cell_size // 4
-                        second_end_y = second_enemy.y + second_enemy.cell_size // 4
-                        
-                        # kreslenie predĺženého laseru na druhého nepriateľa
-                        pygame.draw.line(self.window, (255,0,0), 
-                                       (end_x, end_y), (second_end_x, second_end_y), 2)
-                        
-                        # poškodenie druhého nepriateľa s damage multiplierom
-                        second_enemy.take_damage(self.tower_types[1]["damage"] * damage_multiplier * self.upgrades["piercing_beam"]["effects"]["second_damage"])
-                        if not second_enemy.alive:
-                            self.economy.coins += second_enemy.reward
-                
-                elif (tower_type in [2, 3]) and self.tower_cooldowns[tower_key] == 0:
-                    # získanie vlastností veže na základe upgradu
-                    tower_damage = self.tower_types[tower_type]["damage"]
-                    tower_cooldown = int(self.tower_types[tower_type]["cooldown"] / speed_mult)  # upravený cooldown podľa speed multiplikátora
-                    
-                    if tower_type == 2 and (grid_x, grid_y) in self.tower_upgrades:  # cannon upgrades
-                        upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
-                        if upgrade_type == "heavy_shells":
-                            tower_damage = self.upgrades["heavy_shells"]["effects"]["damage"]
-                            tower_cooldown = int(self.tower_types[tower_type]["cooldown"] * 3 / speed_mult)  # upravený cooldown
-                        elif upgrade_type == "cluster_bombs":
-                            tower_damage = self.upgrades["cluster_bombs"]["effects"]["center_damage"]
-                            tower_cooldown = int(self.upgrades["cluster_bombs"]["effects"]["cooldown"] / speed_mult)
-                    elif tower_type == 3 and (grid_x, grid_y) in self.tower_upgrades:  # basic tower upgrades
-                        upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
-                        if upgrade_type == "rapid_fire":
-                            tower_damage = self.upgrades["rapid_fire"]["effects"]["damage"]
-                            tower_cooldown = int(self.upgrades["rapid_fire"]["effects"]["cooldown"] / speed_mult)
-                        elif upgrade_type == "double_shot":
-                            tower_damage = self.upgrades["double_shot"]["effects"]["damage"]
-                            # vytvorenie dvoch projektilov s damage multiplierom
-                            targets = [e[0] for e in enemies_in_range[:3]]
-                            self.add_projectile(start_x - 5, start_y, targets, tower_damage * damage_multiplier, tower_type)
-                            self.add_projectile(start_x + 5, start_y, targets, tower_damage * damage_multiplier, tower_type)
-                            self.basic_sound.play()
-                            self.tower_cooldowns[tower_key] = tower_cooldown
-                            continue
-                    
-                    # vytvorenie nového projektilu s damage multiplierom
-                    targets = [e[0] for e in enemies_in_range[:3]]
-                    if tower_type == 2:  # cannon
-                        upgrade_type = self.tower_upgrades.get((grid_x, grid_y))
-                        if upgrade_type == "heavy_shells":
-                            targets = [enemies_in_range[0][0]]  # len prvý nepriateľ pre heavy shells
-                            tower_damage = self.upgrades["heavy_shells"]["effects"]["damage"]
-                            tower_cooldown = int(self.upgrades["heavy_shells"]["effects"]["cooldown"] / speed_mult)
-                        elif upgrade_type == "cluster_bombs":
-                            tower_damage = self.upgrades["cluster_bombs"]["effects"]["center_damage"]
-                            tower_cooldown = int(self.upgrades["cluster_bombs"]["effects"]["cooldown"] / speed_mult)
-                        self.add_projectile(start_x, start_y, targets, tower_damage * damage_multiplier, tower_type, upgrade_type)
-                        self.cannon_sound.play()
-                    else:  # basic tower (single shot)
-                        self.add_projectile(start_x, start_y, targets, tower_damage * damage_multiplier, tower_type)
-                        self.basic_sound.play()
-                    
-                    # reset cooldownu
-                    self.tower_cooldowns[tower_key] = tower_cooldown
+            target = min(valid_enemies, 
+                        key=lambda enemy: self.get_distance(x, y, enemy))
+            
+            # Získanie upgrade typu pre vežu
+            upgrade_type = self.tower_upgrades.get((x, y))
+            
+            # Nastavenie cooldownu podľa typu veže a upgradu
+            if tower_type == 1:  # laser
+                cooldown = 0
+            elif tower_type == 2:  # cannon
+                if upgrade_type == "heavy_shells":
+                    cooldown = self.upgrades["heavy_shells"]["effects"]["cooldown"]
+                elif upgrade_type == "cluster_bombs":
+                    cooldown = self.upgrades["cluster_bombs"]["effects"]["cooldown"]
+                else:
+                    cooldown = self.tower_types[2]["cooldown"]
+            else:  # basic
+                if upgrade_type == "rapid_fire":
+                    cooldown = self.upgrades["rapid_fire"]["effects"]["cooldown"]
+                else:
+                    cooldown = self.tower_types[3]["cooldown"]
+            
+            # Aplikácia speed boost efektu ak je v dosahu boosting tower
+            if self.is_boosted_by_tower(x, y):
+                boost_type = None
+                for bx, by, bt in self.tower_positions:
+                    if bt == 4 and self.is_in_range(bx, by, None, bt):
+                        boost_type = self.tower_upgrades.get((bx, by))
+                        if boost_type == "speed_boost":
+                            cooldown = int(cooldown / self.upgrades["speed_boost"]["effects"]["speed_boost"])
+                            break
+            
+            self.tower_cooldowns[tower_pos] = cooldown
+            
+            # Streľba podľa typu veže
+            self.shoot((x, y, tower_type), valid_enemies)
 
     def place_tower(self, pos_x, pos_y, is_right_click):
         # najprv skontrolujeme či neklikáme mimo menu
@@ -1137,14 +1109,103 @@ class Tower():
             pixel_x = grid_x * self.cell_size
             pixel_y = grid_y * self.cell_size
             if 0 <= grid_x < len(self.game_map.map_1[0]) and 0 <= grid_y < len(self.game_map.map_1):
-                if tower_type == 1:
-                    tower_img = self.tower_1
+                if tower_type == 1:  # laser tower
+                    # Kontrola či je veža v stave streľby
+                    if (grid_x, grid_y) in self.firing_towers:
+                        if (grid_x, grid_y) in self.tower_upgrades:
+                            upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+                            if upgrade_type == "piercing_beam":
+                                tower_img = self.tower_1_piercing_firing
+                            elif upgrade_type == "overcharge":
+                                tower_img = self.tower_1_overcharge_firing
+                            else:
+                                tower_img = self.tower_1_firing
+                        else:
+                            tower_img = self.tower_1_firing
+                        self.firing_towers[(grid_x, grid_y)] -= 1
+                        if self.firing_towers[(grid_x, grid_y)] <= 0:
+                            del self.firing_towers[(grid_x, grid_y)]
+                    else:
+                        if (grid_x, grid_y) in self.tower_upgrades:
+                            upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+                            if upgrade_type == "piercing_beam":
+                                tower_img = self.tower_1_piercing
+                            elif upgrade_type == "overcharge":
+                                tower_img = self.tower_1_overcharge
+                            else:
+                                tower_img = self.tower_1
+                        else:
+                            tower_img = self.tower_1
                 elif tower_type == 2:
-                    tower_img = self.tower_2
-                elif tower_type == 3:
-                    tower_img = self.tower_3
-                else:
-                    tower_img = self.tower_4
+                    # Kontrola či je veža v stave streľby
+                    if (grid_x, grid_y) in self.firing_towers:
+                        if (grid_x, grid_y) in self.tower_upgrades:
+                            upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+                            if upgrade_type == "heavy_shells":
+                                tower_img = self.tower_2_heavy_firing
+                            elif upgrade_type == "cluster_bombs":
+                                tower_img = self.tower_2_cluster_firing
+                            else:
+                                tower_img = self.tower_2_firing
+                        else:
+                            tower_img = self.tower_2_firing
+                        self.firing_towers[(grid_x, grid_y)] -= 1
+                        if self.firing_towers[(grid_x, grid_y)] <= 0:
+                            del self.firing_towers[(grid_x, grid_y)]
+                    else:
+                        if (grid_x, grid_y) in self.tower_upgrades:
+                            upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+                            if upgrade_type == "heavy_shells":
+                                tower_img = self.tower_2_heavy
+                            elif upgrade_type == "cluster_bombs":
+                                tower_img = self.tower_2_cluster
+                            else:
+                                tower_img = self.tower_2
+                        else:
+                            tower_img = self.tower_2
+                elif tower_type == 3:  # basic tower
+                    # Kontrola či je veža v stave streľby
+                    if (grid_x, grid_y) in self.firing_towers:
+                        if (grid_x, grid_y) in self.tower_upgrades:
+                            upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+                            if upgrade_type == "rapid_fire":
+                                tower_img = self.tower_3_rapid_firing  # sprite pre strieľanie rapid fire upgradu
+                            elif upgrade_type == "double_shot":
+                                tower_img = self.tower_3_double_firing  # sprite pre strieľanie double shot upgradu
+                            else:
+                                tower_img = self.tower_3_firing  # sprite pre strieľanie základnej veže
+                        else:
+                            tower_img = self.tower_3_firing  # sprite pre strieľanie základnej veže
+                        self.firing_towers[(grid_x, grid_y)] -= 1
+                        if self.firing_towers[(grid_x, grid_y)] <= 0:
+                            del self.firing_towers[(grid_x, grid_y)]
+                    else:
+                        if (grid_x, grid_y) in self.tower_upgrades:
+                            upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+                            if upgrade_type == "rapid_fire":
+                                tower_img = self.tower_3_rapid
+                            elif upgrade_type == "double_shot":
+                                tower_img = self.tower_3_double
+                            else:
+                                tower_img = self.tower_3
+                        else:
+                            tower_img = self.tower_3
+                else:  # boosting tower
+                    # Kontrola či veža aktívne boostuje
+                    is_boosting = self.is_boosting_any_tower(grid_x, grid_y)
+                    
+                    if not is_boosting:
+                        tower_img = self.tower_4_unboosted
+                    elif (grid_x, grid_y) in self.tower_upgrades:
+                        upgrade_type = self.tower_upgrades[(grid_x, grid_y)]
+                        if upgrade_type == "damage_boost":
+                            tower_img = self.tower_4_dmg
+                        elif upgrade_type == "speed_boost":
+                            tower_img = self.tower_4_spd
+                        else:
+                            tower_img = self.tower_4
+                    else:
+                        tower_img = self.tower_4
                 self.window.blit(tower_img, (pixel_x, pixel_y))
                 
                 # zobrazenie upgrade ikon
@@ -1332,75 +1393,132 @@ class Tower():
             
         return base_stats
 
-    def shoot(self, tower_pos, enemies):
-        """Vystreli na najbližneho nepriateľa"""
-        x, y, tower_type = tower_pos
-        
-        # Získanie finálnych štatistík veže
-        tower_stats = self.get_tower_stats(tower_type, x, y)
-        
-        # Kontrola cooldownu
-        if tower_type in [1, 2, 3]:  # len pre útočné veže
-            cooldown = tower_stats.get("cooldown", self.tower_types[tower_type]["cooldown"])
-            if pygame.time.get_ticks() - self.last_shot.get((x, y), 0) < cooldown:
-                return
-        
-        # Nájdenie najbližšieho nepriateľa v dosahu
-        tower_range = tower_stats.get("range", self.tower_types[tower_type]["range"])
-        target = self.find_target(x, y, enemies, tower_range)
-        
-        if target:
-            damage = tower_stats.get("damage", self.tower_types[tower_type]["damage"])
+    def shoot(self, tower_pos, valid_enemies):
+        if not valid_enemies:
+            return
             
-            if tower_type == 1:  # laser
-                if (x, y) in self.tower_upgrades and self.tower_upgrades[(x, y)] == "piercing_beam":
-                    # Piercing beam logika
-                    targets = self.find_targets_in_line(x, y, target, enemies, tower_range)
-                    for i, enemy in enumerate(targets):
-                        if i == 0:
-                            enemy.take_damage(damage)
-                        else:
-                            enemy.take_damage(damage * self.upgrades["piercing_beam"]["effects"]["second_damage"])
-                        if not enemy.alive:
-                            self.economy.coins += enemy.reward
-                else:
-                    # Normálny laser útok
-                    target.take_damage(damage)
-                    if not target.alive:
-                        self.economy.coins += target.reward
+        x, y, tower_type = tower_pos
+        start_x = x * self.cell_size + self.cell_size // 2
+        start_y = y * self.cell_size + self.cell_size // 2
+        
+        # Získanie damage multiplikátora
+        damage_multiplier = 1.0
+        if self.game_map.map_1[y][x] == 3:  # zlaté políčko
+            damage_multiplier *= 1.25
+        if self.is_boosted_by_tower(x, y):  # boost od veže
+            damage_multiplier *= 1.25
+            
+        # Získanie shop multiplikátorov
+        shop_damage_mult, shop_speed_mult = self.shop.get_tower_multipliers(tower_type)
+        damage_multiplier *= shop_damage_mult
+        
+        upgrade_type = self.tower_upgrades.get((x, y))
+        
+        if tower_type == 1:  # laser
+            # Nastavenie firing stavu pre laser vežu
+            self.firing_towers[(x, y)] = self.firing_animation_duration
+            
+            enemy = valid_enemies[0]
+            end_x = enemy.x + enemy.cell_size // 4
+            end_y = enemy.y + enemy.cell_size // 4
+            
+            # Overcharge efekt
+            if upgrade_type == "overcharge":
+                tower_pos = (x, y)
+                if tower_pos not in self.overcharge_states:
+                    # Inicializácia overcharge stavu
+                    self.overcharge_states[tower_pos] = {
+                        "active": True,
+                        "timer": self.upgrades["overcharge"]["effects"]["active_time"],
+                        "cooldown_timer": 0
+                    }
                 
-                self.laser_sound.play()
+                overcharge_state = self.overcharge_states[tower_pos]
+                if overcharge_state["active"]:
+                    damage_multiplier *= self.upgrades["overcharge"]["effects"]["damage"]
+                    overcharge_state["timer"] -= 1
+                    
+                    # Keď vyprší active time
+                    if overcharge_state["timer"] <= 0:
+                        overcharge_state["active"] = False
+                        overcharge_state["cooldown_timer"] = self.upgrades["overcharge"]["effects"]["cooldown_time"]
+                else:  # Počas cooldownu nestrieľa
+                    if overcharge_state["cooldown_timer"] > 0:
+                        overcharge_state["cooldown_timer"] -= 1
+                        # Po vypršaní cooldownu
+                        if overcharge_state["cooldown_timer"] <= 0:
+                            overcharge_state["active"] = True
+                            overcharge_state["timer"] = self.upgrades["overcharge"]["effects"]["active_time"]
+                        return  # Nestrieľa počas cooldownu
+            
+            # Kreslenie a damage pre prvý cieľ
+            pygame.draw.line(self.window, (255,0,0), (start_x, start_y), (end_x, end_y), 2)
+            self.laser_sound.play()
+            enemy.take_damage(self.tower_types[1]["damage"] * damage_multiplier)
+            if not enemy.alive and not (hasattr(enemy, 'is_dying_animation') and enemy.is_dying_animation()):
+                self.economy.coins += enemy.reward
+            
+            # Piercing beam logika
+            if upgrade_type == "piercing_beam" and len(valid_enemies) > 1:
+                second_enemy = valid_enemies[1]
+                second_end_x = second_enemy.x + second_enemy.cell_size // 4
+                second_end_y = second_enemy.y + second_enemy.cell_size // 4
                 
-            elif tower_type == 2:  # cannon
-                upgrade = self.tower_upgrades.get((x, y))
-                if upgrade == "heavy_shells":
-                    # Heavy shells logika - jeden silný výstrel
-                    self.create_projectile(x, y, target, damage, tower_type, [target], upgrade)
-                elif upgrade == "cluster_bombs":
-                    # Cluster bombs logika - tri výbuchy
-                    self.create_projectile(x, y, target, damage, tower_type, enemies, upgrade)
-                else:
-                    # Normálny cannon útok
-                    targets = self.find_targets_in_range(x, y, target, enemies, self.cell_size)
-                    self.create_projectile(x, y, target, damage, tower_type, targets)
+                pygame.draw.line(self.window, (255,0,0), (end_x, end_y), (second_end_x, second_end_y), 2)
+                second_enemy.take_damage(self.tower_types[1]["damage"] * damage_multiplier * 
+                                      self.upgrades["piercing_beam"]["effects"]["second_damage"])
+                if not second_enemy.alive and not (hasattr(second_enemy, 'is_dying_animation') and second_enemy.is_dying_animation()):
+                    self.economy.coins += second_enemy.reward
+                    
+        else:  # cannon alebo basic
+            tower_damage = self.tower_types[tower_type]["damage"]
+            
+            if tower_type == 2:  # cannon
+                # Nastavenie firing stavu pre cannon
+                self.firing_towers[(x, y)] = self.firing_animation_duration
                 
+                if upgrade_type == "heavy_shells":
+                    valid_enemies = valid_enemies[:1]  # len prvý nepriateľ
+                    tower_damage = self.upgrades["heavy_shells"]["effects"]["damage"]
+                elif upgrade_type == "cluster_bombs":
+                    tower_damage = self.upgrades["cluster_bombs"]["effects"]["center_damage"]
+                self.add_projectile(start_x, start_y, valid_enemies, tower_damage * damage_multiplier, 
+                                  tower_type, upgrade_type)
                 self.cannon_sound.play()
                 
-            elif tower_type == 3:  # basic
-                upgrade = self.tower_upgrades.get((x, y))
-                if upgrade == "double_shot":
-                    # Double shot logika
-                    angle = 15  # uhol medzi projektilmi
-                    self.create_projectile(x, y, target, self.upgrades["double_shot"]["effects"]["damage"], 
-                                        tower_type, [target], upgrade, -angle)
-                    self.create_projectile(x, y, target, self.upgrades["double_shot"]["effects"]["damage"], 
-                                        tower_type, [target], upgrade, angle)
-                else:
-                    # Normálny basic útok
-                    self.create_projectile(x, y, target, damage, tower_type, [target])
+            else:  # basic tower
+                # Nastavenie firing stavu pre basic vežu
+                self.firing_towers[(x, y)] = self.firing_animation_duration  # nastavenie stavu strieľania
                 
+                if upgrade_type == "rapid_fire":
+                    tower_damage = self.upgrades["rapid_fire"]["effects"]["damage"]
+                elif upgrade_type == "double_shot":
+                    tower_damage = self.upgrades["double_shot"]["effects"]["damage"]
+                    # dva projektily
+                    self.add_projectile(start_x - 5, start_y, valid_enemies, tower_damage * damage_multiplier, 
+                                      tower_type)
+                    self.add_projectile(start_x + 5, start_y, valid_enemies, tower_damage * damage_multiplier, 
+                                      tower_type)
+                    self.basic_sound.play()
+                    return
+                
+                self.add_projectile(start_x, start_y, valid_enemies, tower_damage * damage_multiplier, 
+                                  tower_type)
                 self.basic_sound.play()
-            
-            self.last_shot[(x, y)] = pygame.time.get_ticks()
+
+    def is_boosting_any_tower(self, boost_x, boost_y):
+        """Kontroluje či boosting veža aktívne boostuje nejaké veže"""
+        # kontrola či je boosting tower na golden tile
+        is_on_gold = self.game_map.map_1[boost_y][boost_x] == 3
+        max_range = 2 if is_on_gold else 1  # dvojnásobný rozsah na golden tile
+        
+        # kontrola všetkých veží
+        for x, y, tower_type in self.tower_positions:
+            if tower_type != 4:  # ignorujeme iné boosting veže
+                dx = abs(x - boost_x)
+                dy = abs(y - boost_y)
+                if dx <= max_range and dy <= max_range:  # v dosahu podľa typu políčka
+                    return True
+        return False
 
 

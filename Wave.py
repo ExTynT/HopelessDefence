@@ -1,6 +1,7 @@
 import pygame
 import random
 from Enemy import Enemy
+from AnimatedEnemy import AnimatedEnemy
 
 class Wave:
     def __init__(self, window, game_map):
@@ -62,7 +63,8 @@ class Wave:
             self.spawn_timer += 1
             if self.spawn_timer >= self.spawn_delay:
                 enemy_type = self.get_enemy_type()
-                new_enemy = Enemy(self.window, self.game_map, enemy_type)
+                # Použitie AnimatedEnemy pre všetky typy nepriateľov
+                new_enemy = AnimatedEnemy(self.window, self.game_map, enemy_type)
                 new_enemy.max_health *= self.hp_multiplier  # aplikácia HP multiplikátora
                 new_enemy.health = new_enemy.max_health  # nastavenie aktuálneho HP
                 self.enemies.append(new_enemy)

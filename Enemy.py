@@ -8,36 +8,12 @@ class Enemy:
         self.cell_size = 60
         self.enemy_type = enemy_type
         
-        # nastavenie vlastností podľa typu nepriateľa
-        if enemy_type == 1:  # základný orb
-            self.image = pygame.image.load("sprites/enemies/orb_1.png")
-            self.max_health = 100 * hp_multiplier
-            self.speed = 2
-            self.reward = 15  # odmena za zabitie
-        elif enemy_type == 2:  # rýchly orb
-            self.image = pygame.image.load("sprites/enemies/orb_2_speed.png")
-            self.max_health = 100 * hp_multiplier
-            self.speed = 2  # znížená rýchlosť na 2
-            self.is_speed_orb = True
-            self.reward = 25  # väčšia odmena za rýchleho nepriateľa
-        elif enemy_type == 3:  # odolný orb
-            self.image = pygame.image.load("sprites/enemies/orb_3_tough.png")
-            self.max_health = 400 * hp_multiplier
-            self.speed = 1.5
-            self.reward = 40  # veľká odmena za odolného nepriateľa
-        elif enemy_type == 4:  # boss
-            self.image = pygame.image.load("sprites/enemies/orb_4_boss.png")
-            self.max_health = 1000 * hp_multiplier
-            self.speed = 2.5
-            self.reward = 100  # najväčšia odmena za bossa
-        
-        # transformácia obrázku podľa typu
-        size_multiplier = 1.5 if enemy_type == 4 else 1
-        self.image = pygame.transform.scale(self.image, 
-            (int(self.cell_size//2 * size_multiplier), 
-             int(self.cell_size//2 * size_multiplier)))
-        
+        # základné vlastnosti
+        self.max_health = 100 * hp_multiplier  # základné HP pre všetky typy
         self.health = self.max_health
+        self.speed = 2  # základná rýchlosť
+        self.base_speed = self.speed  # uloženie základnej rýchlosti pre efekty spomalenia
+        self.reward = 15  # základná odmena
         
         # nájdenie štartovacej pozície (hodnota 2 v mape)
         for y, row in enumerate(game_map.map_1):
@@ -45,13 +21,11 @@ class Enemy:
                 if value == 2:
                     self.x = x * self.cell_size + self.cell_size // 4
                     self.y = y * self.cell_size + self.cell_size // 4
-                    self.last_move = (0, 1)  # počiatočný smer pohybu (dole)
+                    # Počiatočný smer pohybu - pre bossa doprava, pre ostatných dole
+                    self.last_move = (1, 0) if enemy_type == 4 else (0, 1)
                     break
         
         self.alive = True
-        
-        # uloženie základnej rýchlosti pre efekty spomalenia
-        self.base_speed = self.speed  # nastavenie base_speed až po inicializácii speed
 
     def take_damage(self, damage):
         self.health -= damage
@@ -79,48 +53,34 @@ class Enemy:
         cell_center_x = grid_x * self.cell_size + self.cell_size // 4
         cell_center_y = grid_y * self.cell_size + self.cell_size // 4
         
-        # špeciálna logika pre modré orby
-        if hasattr(self, 'is_speed_orb'):
-            # ak sme v strede bunky, hľadáme nový smer
-            if (abs(self.x - cell_center_x) < 2 and abs(self.y - cell_center_y) < 2):
-                self.x = cell_center_x
-                self.y = cell_center_y
-                
-                # kontrola možných smerov pohybu
-                directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-                for dx, dy in directions:
-                    next_x = grid_x + dx
-                    next_y = grid_y + dy
-                    if (0 <= next_x < len(self.game_map.map_1[0]) and 
-                        0 <= next_y < len(self.game_map.map_1)):
-                        next_value = self.game_map.map_1[next_y][next_x]
-                        if next_value in [1, 4] and (dx, dy) != (-self.last_move[0], -self.last_move[1]) if self.last_move else True:
-                            self.last_move = (dx, dy)
-                            break
+        # pohyb k ďalšiemu stredu bunky
+        if (abs(self.x - cell_center_x) < self.speed and 
+            abs(self.y - cell_center_y) < self.speed):
             
-            # pohyb k ďalšiemu stredu bunky
-            if self.last_move:
-                self.x += self.last_move[0] * self.speed * 1.4
-                self.y += self.last_move[1] * self.speed * 1.4
-        else:
-            # pôvodná logika pre ostatné orby
-            if (abs(self.x - cell_center_x) < self.speed and 
-                abs(self.y - cell_center_y) < self.speed):
-                
-                directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-                for dx, dy in directions:
-                    next_x = grid_x + dx
-                    next_y = grid_y + dy
-                    if (0 <= next_x < len(self.game_map.map_1[0]) and 
-                        0 <= next_y < len(self.game_map.map_1)):
-                        next_value = self.game_map.map_1[next_y][next_x]
-                        if next_value in [1, 4] and (dx, dy) != (-self.last_move[0], -self.last_move[1]) if self.last_move else True:
-                            self.last_move = (dx, dy)
-                            break
-            
-            if self.last_move:
-                self.x += self.last_move[0] * self.speed
-                self.y += self.last_move[1] * self.speed
+            directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            for dx, dy in directions:
+                next_x = grid_x + dx
+                next_y = grid_y + dy
+                if (0 <= next_x < len(self.game_map.map_1[0]) and 
+                    0 <= next_y < len(self.game_map.map_1)):
+                    next_value = self.game_map.map_1[next_y][next_x]
+                    if next_value in [1, 4] and (dx, dy) != (-self.last_move[0], -self.last_move[1]) if self.last_move else True:
+                        # Ak sa mení smer, aktualizujeme last_direction
+                        if hasattr(self, 'last_direction'):
+                            if dx < 0:
+                                self.last_direction = "left"
+                            elif dx > 0:
+                                self.last_direction = "right"
+                            elif dy < 0:
+                                self.last_direction = "up"
+                            elif dy > 0:
+                                self.last_direction = "down"
+                        self.last_move = (dx, dy)
+                        break
+        
+        if self.last_move:
+            self.x += self.last_move[0] * self.speed
+            self.y += self.last_move[1] * self.speed
             
         # kontrola či nepriateľ neopustil mapu
         if 0 <= grid_x < len(self.game_map.map_1[0]) and 0 <= grid_y < len(self.game_map.map_1):
@@ -144,5 +104,6 @@ class Enemy:
                 if value == 2:
                     self.x = x * self.cell_size + self.cell_size // 4
                     self.y = y * self.cell_size + self.cell_size // 4
-                    self.last_move = (0, 1)  # počiatočný smer pohybu (dole)
+                    # Počiatočný smer pohybu - pre bossa doprava, pre ostatných dole
+                    self.last_move = (1, 0) if self.enemy_type == 4 else (0, 1)
                     break

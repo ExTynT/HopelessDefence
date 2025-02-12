@@ -24,6 +24,7 @@ build_exe_options = {
         "Map",
         "Wave",
         "Shop",
+        "AnimatedEnemy",
         "Menus",
         "Economy"
     ],
